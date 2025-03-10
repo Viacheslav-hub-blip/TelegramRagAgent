@@ -1,0 +1,285 @@
+2025-03-07 07:18:22,395;DEBUG;Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+2025-03-07 07:18:22,399;INFO;Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2025-03-07 07:18:22,511;DEBUG;Starting component System
+2025-03-07 07:18:22,511;DEBUG;Starting component Posthog
+2025-03-07 07:18:22,511;DEBUG;Starting component OpenTelemetryClient
+2025-03-07 07:18:22,511;DEBUG;Starting component SqliteDB
+2025-03-07 07:18:22,513;DEBUG;Starting component SimpleQuotaEnforcer
+2025-03-07 07:18:22,513;DEBUG;Starting component SimpleRateLimitEnforcer
+2025-03-07 07:18:22,513;DEBUG;Starting component LocalSegmentManager
+2025-03-07 07:18:22,513;DEBUG;Starting component LocalExecutor
+2025-03-07 07:18:22,513;DEBUG;Starting component SegmentAPI
+2025-03-07 07:18:22,527;DEBUG;Collection example already exists, returning existing collection.
+2025-03-07 07:18:22,528;DEBUG;Starting new HTTPS connection (1): router.huggingface.co:443
+2025-03-07 07:18:23,018;DEBUG;Starting new HTTPS connection (1): us.i.posthog.com:443
+2025-03-07 07:18:23,054;DEBUG;https://router.huggingface.co:443 "POST /hf-inference/pipeline/feature-extraction/mixedbread-ai/mxbai-embed-large-v1 HTTP/1.1" 200 None
+2025-03-07 07:18:23,167;DEBUG;Starting component PersistentLocalHnswSegment
+2025-03-07 07:18:23,302;DEBUG;Starting new HTTPS connection (1): api.smith.langchain.com:443
+2025-03-07 07:18:23,309;DEBUG;Starting new HTTPS connection (1): api.smith.langchain.com:443
+2025-03-07 07:18:23,512;DEBUG;https://api.smith.langchain.com:443 "GET /info HTTP/1.1" 200 672
+2025-03-07 07:18:23,541;DEBUG;https://api.smith.langchain.com:443 "GET /commits/rlm/rag-prompt/latest HTTP/1.1" 200 844
+2025-03-07 07:18:23,557;INFO;--RETRIEVE--
+2025-03-07 07:18:23,672;DEBUG;https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+2025-03-07 07:18:23,884;DEBUG;https://router.huggingface.co:443 "POST /hf-inference/pipeline/feature-extraction/mixedbread-ai/mxbai-embed-large-v1 HTTP/1.1" 200 None
+2025-03-07 07:18:23,902;INFO;--RETRIEVE--RETRIEVED DOCS-- 
+ [(Document(id='2', metadata={'doc_id': '2', 'source': 'tweet', 'source_doc': [Document(id='2', metadata={'source': 'tweet', 'doc_id': '2'}, page_content='Slava Rylkov this is a young developer who is 20 years old. He lives in Moscow, studies at the university. SLava is interested in programming and language models.')]}, page_content='Slava Rylkov this is a young developer who is 20 years old. He lives in Moscow, studies at the university. SLava is interested in programming and language models.'), 121.42662333225695), (Document(id='4', metadata={'doc_id': '4', 'source': 'tweet', 'source_doc': [None]}, page_content='The latest of  SLava project was the development of a financial platform and the creation of a smart assistant.'), 269.4628913112558)]
+2025-03-07 07:18:23,904;INFO;--CHECK DOCUMENT RELEVANCE TO QUESTION--
+2025-03-07 07:18:23,916;DEBUG;load_ssl_context verify=False cert=None trust_env=True http2=False
+2025-03-07 07:18:23,917;DEBUG;connect_tcp.started host='ngw.devices.sberbank.ru' port=9443 local_address=None timeout=30.0 socket_options=None
+2025-03-07 07:18:23,929;DEBUG;connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7f581600f490>
+2025-03-07 07:18:23,929;DEBUG;start_tls.started ssl_context=<ssl.SSLContext object at 0x7f5815f83ec0> server_hostname='ngw.devices.sberbank.ru' timeout=30.0
+2025-03-07 07:18:23,950;DEBUG;start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7f5815fb71d0>
+2025-03-07 07:18:23,951;DEBUG;send_request_headers.started request=<Request [b'POST']>
+2025-03-07 07:18:23,951;DEBUG;send_request_headers.complete
+2025-03-07 07:18:23,951;DEBUG;send_request_body.started request=<Request [b'POST']>
+2025-03-07 07:18:23,951;DEBUG;send_request_body.complete
+2025-03-07 07:18:23,951;DEBUG;receive_response_headers.started request=<Request [b'POST']>
+2025-03-07 07:18:23,998;DEBUG;receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Server', b'SynGX'), (b'Date', b'Fri, 07 Mar 2025 04:18:23 GMT'), (b'Content-Type', b'application/json'), (b'Content-Length', b'1279'), (b'Connection', b'keep-alive'), (b'Vary', b'Origin'), (b'Vary', b'Access-Control-Request-Method'), (b'Vary', b'Access-Control-Request-Headers'), (b'Cache-Control', b'no-cache, no-store, max-age=0, must-revalidate'), (b'Pragma', b'no-cache'), (b'Expires', b'0'), (b'X-Content-Type-Options', b'nosniff'), (b'Strict-Transport-Security', b'max-age=31536000 ; includeSubDomains'), (b'X-Frame-Options', b'DENY'), (b'X-XSS-Protection', b'1 ; mode=block'), (b'Referrer-Policy', b'no-referrer'), (b'Allow', b'GET, POST'), (b'X-Frame-Options', b'SAMEORIGIN'), (b'X-XSS-Protection', b'1; mode=block'), (b'X-Content-Type-Options', b'nosniff'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-03-07 07:18:24,000;INFO;HTTP Request: POST https://ngw.devices.sberbank.ru:9443/api/v2/oauth "HTTP/1.1 200 OK"
+2025-03-07 07:18:24,001;DEBUG;receive_response_body.started request=<Request [b'POST']>
+2025-03-07 07:18:24,001;DEBUG;receive_response_body.complete
+2025-03-07 07:18:24,001;DEBUG;response_closed.started
+2025-03-07 07:18:24,001;DEBUG;response_closed.complete
+2025-03-07 07:18:24,002;DEBUG;OAUTH UPDATE TOKEN
+2025-03-07 07:18:24,003;DEBUG;load_ssl_context verify=False cert=None trust_env=True http2=False
+2025-03-07 07:18:24,006;DEBUG;connect_tcp.started host='gigachat.devices.sberbank.ru' port=443 local_address=None timeout=30.0 socket_options=None
+2025-03-07 07:18:24,022;DEBUG;connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7f58160132d0>
+2025-03-07 07:18:24,022;DEBUG;start_tls.started ssl_context=<ssl.SSLContext object at 0x7f58160300e0> server_hostname='gigachat.devices.sberbank.ru' timeout=30.0
+2025-03-07 07:18:24,054;DEBUG;start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7f5816013290>
+2025-03-07 07:18:24,055;DEBUG;send_request_headers.started request=<Request [b'POST']>
+2025-03-07 07:18:24,055;DEBUG;send_request_headers.complete
+2025-03-07 07:18:24,055;DEBUG;send_request_body.started request=<Request [b'POST']>
+2025-03-07 07:18:24,056;DEBUG;send_request_body.complete
+2025-03-07 07:18:24,056;DEBUG;receive_response_headers.started request=<Request [b'POST']>
+2025-03-07 07:18:24,199;DEBUG;receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Server', b'SynGX'), (b'Date', b'Fri, 07 Mar 2025 04:18:24 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Content-Length', b'271'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Credentials', b'true'), (b'Access-Control-Allow-Headers', b'Origin, X-Requested-With, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'https://beta.saluteai.sberdevices.ru'), (b'X-Request-Id', b'3dc11412-d4d6-4857-9d59-bf85b2a6e5f7'), (b'X-Session-Id', b'932ed9d3-13e6-4f9f-af02-8e9f185b130d'), (b'Allow', b'GET, POST'), (b'X-Frame-Options', b'SAMEORIGIN'), (b'X-XSS-Protection', b'1; mode=block'), (b'X-Content-Type-Options', b'nosniff'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-03-07 07:18:24,199;INFO;HTTP Request: POST https://gigachat.devices.sberbank.ru/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-03-07 07:18:24,200;DEBUG;receive_response_body.started request=<Request [b'POST']>
+2025-03-07 07:18:24,200;DEBUG;receive_response_body.complete
+2025-03-07 07:18:24,200;DEBUG;response_closed.started
+2025-03-07 07:18:24,201;DEBUG;response_closed.complete
+2025-03-07 07:18:24,203;DEBUG;BINARY RES Yes
+2025-03-07 07:18:24,203;INFO;-BINARY SEARCH YES--
+2025-03-07 07:18:24,204;INFO;--ASSESS GRADED DOCUMENTS--
+2025-03-07 07:18:24,204;INFO;-DECISION: GENERATE--
+2025-03-07 07:18:24,207;INFO;--GENERATE--
+2025-03-07 07:18:24,207;WARNING;--FINAL DOCS-- [(Document(id='2', metadata={'doc_id': '2', 'source': 'tweet', 'source_doc': [Document(id='2', metadata={'source': 'tweet', 'doc_id': '2'}, page_content='Slava Rylkov this is a young developer who is 20 years old. He lives in Moscow, studies at the university. SLava is interested in programming and language models.')]}, page_content='Slava Rylkov this is a young developer who is 20 years old. He lives in Moscow, studies at the university. SLava is interested in programming and language models.'), 121.42662333225695), (Document(id='4', metadata={'doc_id': '4', 'source': 'tweet', 'source_doc': [None]}, page_content='The latest of  SLava project was the development of a financial platform and the creation of a smart assistant.'), 269.4628913112558)]
+2025-03-07 07:18:24,213;DEBUG;send_request_headers.started request=<Request [b'POST']>
+2025-03-07 07:18:24,214;DEBUG;send_request_headers.complete
+2025-03-07 07:18:24,214;DEBUG;send_request_body.started request=<Request [b'POST']>
+2025-03-07 07:18:24,214;DEBUG;send_request_body.complete
+2025-03-07 07:18:24,215;DEBUG;receive_response_headers.started request=<Request [b'POST']>
+2025-03-07 07:18:24,377;DEBUG;https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+2025-03-07 07:18:24,553;DEBUG;receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Server', b'SynGX'), (b'Date', b'Fri, 07 Mar 2025 04:18:24 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Content-Length', b'480'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Credentials', b'true'), (b'Access-Control-Allow-Headers', b'Origin, X-Requested-With, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'https://beta.saluteai.sberdevices.ru'), (b'X-Request-Id', b'b5de483a-4237-4cca-b426-e5a3a2657697'), (b'X-Session-Id', b'cd5b6042-ede6-4de8-a814-08a648c47753'), (b'Allow', b'GET, POST'), (b'X-Frame-Options', b'SAMEORIGIN'), (b'X-XSS-Protection', b'1; mode=block'), (b'X-Content-Type-Options', b'nosniff'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-03-07 07:18:24,553;INFO;HTTP Request: POST https://gigachat.devices.sberbank.ru/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-03-07 07:18:24,554;DEBUG;receive_response_body.started request=<Request [b'POST']>
+2025-03-07 07:18:24,554;DEBUG;receive_response_body.complete
+2025-03-07 07:18:24,554;DEBUG;response_closed.started
+2025-03-07 07:18:24,554;DEBUG;response_closed.complete
+2025-03-07 07:18:24,555;DEBUG;Closing Client.session
+2025-03-07 07:18:24,556;DEBUG;Closing Client.session
+2025-03-07 07:24:21,792;DEBUG;Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+2025-03-07 07:24:21,796;INFO;Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2025-03-07 07:24:21,909;DEBUG;Starting component System
+2025-03-07 07:24:21,909;DEBUG;Starting component Posthog
+2025-03-07 07:24:21,909;DEBUG;Starting component OpenTelemetryClient
+2025-03-07 07:24:21,909;DEBUG;Starting component SqliteDB
+2025-03-07 07:24:21,911;DEBUG;Starting component SimpleQuotaEnforcer
+2025-03-07 07:24:21,911;DEBUG;Starting component SimpleRateLimitEnforcer
+2025-03-07 07:24:21,911;DEBUG;Starting component LocalSegmentManager
+2025-03-07 07:24:21,911;DEBUG;Starting component LocalExecutor
+2025-03-07 07:24:21,911;DEBUG;Starting component SegmentAPI
+2025-03-07 07:24:21,925;DEBUG;Collection example already exists, returning existing collection.
+2025-03-07 07:24:21,926;DEBUG;Starting new HTTPS connection (1): router.huggingface.co:443
+2025-03-07 07:24:22,416;DEBUG;Starting new HTTPS connection (1): us.i.posthog.com:443
+2025-03-07 07:24:22,465;DEBUG;https://router.huggingface.co:443 "POST /hf-inference/pipeline/feature-extraction/mixedbread-ai/mxbai-embed-large-v1 HTTP/1.1" 200 81508
+2025-03-07 07:24:22,591;DEBUG;Starting component PersistentLocalHnswSegment
+2025-03-07 07:24:22,703;DEBUG;Starting new HTTPS connection (1): api.smith.langchain.com:443
+2025-03-07 07:24:22,709;DEBUG;Starting new HTTPS connection (1): api.smith.langchain.com:443
+2025-03-07 07:24:22,922;DEBUG;https://api.smith.langchain.com:443 "GET /info HTTP/1.1" 200 672
+2025-03-07 07:24:22,935;DEBUG;https://api.smith.langchain.com:443 "GET /commits/rlm/rag-prompt/latest HTTP/1.1" 200 844
+2025-03-07 07:24:23,013;DEBUG;https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+2025-03-07 07:24:23,175;DEBUG;Closing Client.session
+2025-03-07 07:24:23,176;DEBUG;Closing Client.session
+2025-03-07 07:24:44,714;DEBUG;Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+2025-03-07 07:24:44,718;INFO;Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2025-03-07 07:24:44,835;DEBUG;Starting component System
+2025-03-07 07:24:44,835;DEBUG;Starting component Posthog
+2025-03-07 07:24:44,835;DEBUG;Starting component OpenTelemetryClient
+2025-03-07 07:24:44,835;DEBUG;Starting component SqliteDB
+2025-03-07 07:24:44,837;DEBUG;Starting component SimpleQuotaEnforcer
+2025-03-07 07:24:44,838;DEBUG;Starting component SimpleRateLimitEnforcer
+2025-03-07 07:24:44,838;DEBUG;Starting component LocalSegmentManager
+2025-03-07 07:24:44,838;DEBUG;Starting component LocalExecutor
+2025-03-07 07:24:44,838;DEBUG;Starting component SegmentAPI
+2025-03-07 07:24:44,851;DEBUG;Collection example already exists, returning existing collection.
+2025-03-07 07:24:44,852;DEBUG;Starting new HTTPS connection (1): router.huggingface.co:443
+2025-03-07 07:24:45,327;DEBUG;https://router.huggingface.co:443 "POST /hf-inference/pipeline/feature-extraction/mixedbread-ai/mxbai-embed-large-v1 HTTP/1.1" 200 81508
+2025-03-07 07:24:45,342;DEBUG;Starting new HTTPS connection (1): us.i.posthog.com:443
+2025-03-07 07:24:45,460;DEBUG;Starting component PersistentLocalHnswSegment
+2025-03-07 07:24:45,587;DEBUG;Starting new HTTPS connection (1): api.smith.langchain.com:443
+2025-03-07 07:24:45,593;DEBUG;Starting new HTTPS connection (1): api.smith.langchain.com:443
+2025-03-07 07:24:45,792;DEBUG;https://api.smith.langchain.com:443 "GET /info HTTP/1.1" 200 672
+2025-03-07 07:24:45,812;DEBUG;https://api.smith.langchain.com:443 "GET /commits/rlm/rag-prompt/latest HTTP/1.1" 200 844
+2025-03-07 07:24:45,911;DEBUG;https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+2025-03-07 07:24:46,046;DEBUG;Closing Client.session
+2025-03-07 07:24:46,047;DEBUG;Closing Client.session
+2025-03-07 07:25:28,631;DEBUG;Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+2025-03-07 07:25:28,635;INFO;Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2025-03-07 07:25:28,762;DEBUG;Starting component System
+2025-03-07 07:25:28,762;DEBUG;Starting component Posthog
+2025-03-07 07:25:28,762;DEBUG;Starting component OpenTelemetryClient
+2025-03-07 07:25:28,762;DEBUG;Starting component SqliteDB
+2025-03-07 07:25:28,765;DEBUG;Starting component SimpleQuotaEnforcer
+2025-03-07 07:25:28,765;DEBUG;Starting component SimpleRateLimitEnforcer
+2025-03-07 07:25:28,765;DEBUG;Starting component LocalSegmentManager
+2025-03-07 07:25:28,765;DEBUG;Starting component LocalExecutor
+2025-03-07 07:25:28,765;DEBUG;Starting component SegmentAPI
+2025-03-07 07:25:28,781;DEBUG;Collection example already exists, returning existing collection.
+2025-03-07 07:25:28,784;DEBUG;Starting new HTTPS connection (1): router.huggingface.co:443
+2025-03-07 07:25:29,090;DEBUG;https://router.huggingface.co:443 "POST /hf-inference/pipeline/feature-extraction/mixedbread-ai/mxbai-embed-large-v1 HTTP/1.1" 200 81508
+2025-03-07 07:25:29,142;DEBUG;Starting component PersistentLocalHnswSegment
+2025-03-07 07:25:29,269;DEBUG;Starting new HTTPS connection (1): us.i.posthog.com:443
+2025-03-07 07:25:29,271;DEBUG;Starting new HTTPS connection (1): api.smith.langchain.com:443
+2025-03-07 07:25:29,278;DEBUG;Starting new HTTPS connection (1): api.smith.langchain.com:443
+2025-03-07 07:25:29,471;DEBUG;https://api.smith.langchain.com:443 "GET /info HTTP/1.1" 200 672
+2025-03-07 07:25:29,501;DEBUG;https://api.smith.langchain.com:443 "GET /commits/rlm/rag-prompt/latest HTTP/1.1" 200 844
+2025-03-07 07:25:29,510;INFO;--RETRIEVE--
+2025-03-07 07:25:29,699;DEBUG;https://router.huggingface.co:443 "POST /hf-inference/pipeline/feature-extraction/mixedbread-ai/mxbai-embed-large-v1 HTTP/1.1" 200 20390
+2025-03-07 07:25:29,721;INFO;--RETRIEVE--RETRIEVED DOCS-- 
+ [(Document(id='2', metadata={'doc_id': '2', 'source': 'tweet', 'source_doc': [Document(id='2', metadata={'source': 'tweet', 'doc_id': '2'}, page_content='Slava Rylkov this is a young developer who is 20 years old. He lives in Moscow, studies at the university. SLava is interested in programming and language models.')]}, page_content='Slava Rylkov this is a young developer who is 20 years old. He lives in Moscow, studies at the university. SLava is interested in programming and language models.'), 121.42662333225695), (Document(id='4', metadata={'doc_id': '4', 'source': 'tweet', 'source_doc': [None]}, page_content='The latest of  SLava project was the development of a financial platform and the creation of a smart assistant.'), 269.4628913112558)]
+2025-03-07 07:25:29,724;INFO;--CHECK DOCUMENT RELEVANCE TO QUESTION--
+2025-03-07 07:25:29,740;DEBUG;load_ssl_context verify=False cert=None trust_env=True http2=False
+2025-03-07 07:25:29,742;DEBUG;connect_tcp.started host='ngw.devices.sberbank.ru' port=9443 local_address=None timeout=30.0 socket_options=None
+2025-03-07 07:25:29,760;DEBUG;connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7fc22a31ab50>
+2025-03-07 07:25:29,761;DEBUG;start_tls.started ssl_context=<ssl.SSLContext object at 0x7fc22a293ec0> server_hostname='ngw.devices.sberbank.ru' timeout=30.0
+2025-03-07 07:25:29,783;DEBUG;start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7fc22a2f2610>
+2025-03-07 07:25:29,784;DEBUG;send_request_headers.started request=<Request [b'POST']>
+2025-03-07 07:25:29,784;DEBUG;send_request_headers.complete
+2025-03-07 07:25:29,784;DEBUG;send_request_body.started request=<Request [b'POST']>
+2025-03-07 07:25:29,784;DEBUG;send_request_body.complete
+2025-03-07 07:25:29,784;DEBUG;receive_response_headers.started request=<Request [b'POST']>
+2025-03-07 07:25:29,829;DEBUG;receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Server', b'SynGX'), (b'Date', b'Fri, 07 Mar 2025 04:25:29 GMT'), (b'Content-Type', b'application/json'), (b'Content-Length', b'1279'), (b'Connection', b'keep-alive'), (b'Vary', b'Origin'), (b'Vary', b'Access-Control-Request-Method'), (b'Vary', b'Access-Control-Request-Headers'), (b'Cache-Control', b'no-cache, no-store, max-age=0, must-revalidate'), (b'Pragma', b'no-cache'), (b'Expires', b'0'), (b'X-Content-Type-Options', b'nosniff'), (b'Strict-Transport-Security', b'max-age=31536000 ; includeSubDomains'), (b'X-Frame-Options', b'DENY'), (b'X-XSS-Protection', b'1 ; mode=block'), (b'Referrer-Policy', b'no-referrer'), (b'Allow', b'GET, POST'), (b'X-Frame-Options', b'SAMEORIGIN'), (b'X-XSS-Protection', b'1; mode=block'), (b'X-Content-Type-Options', b'nosniff'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-03-07 07:25:29,830;INFO;HTTP Request: POST https://ngw.devices.sberbank.ru:9443/api/v2/oauth "HTTP/1.1 200 OK"
+2025-03-07 07:25:29,831;DEBUG;receive_response_body.started request=<Request [b'POST']>
+2025-03-07 07:25:29,831;DEBUG;receive_response_body.complete
+2025-03-07 07:25:29,831;DEBUG;response_closed.started
+2025-03-07 07:25:29,832;DEBUG;response_closed.complete
+2025-03-07 07:25:29,832;DEBUG;OAUTH UPDATE TOKEN
+2025-03-07 07:25:29,833;DEBUG;load_ssl_context verify=False cert=None trust_env=True http2=False
+2025-03-07 07:25:29,837;DEBUG;connect_tcp.started host='gigachat.devices.sberbank.ru' port=443 local_address=None timeout=30.0 socket_options=None
+2025-03-07 07:25:29,850;DEBUG;connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7fc22a340550>
+2025-03-07 07:25:29,850;DEBUG;start_tls.started ssl_context=<ssl.SSLContext object at 0x7fc22a33c0e0> server_hostname='gigachat.devices.sberbank.ru' timeout=30.0
+2025-03-07 07:25:29,880;DEBUG;start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7fc22a340510>
+2025-03-07 07:25:29,880;DEBUG;send_request_headers.started request=<Request [b'POST']>
+2025-03-07 07:25:29,881;DEBUG;send_request_headers.complete
+2025-03-07 07:25:29,881;DEBUG;send_request_body.started request=<Request [b'POST']>
+2025-03-07 07:25:29,882;DEBUG;send_request_body.complete
+2025-03-07 07:25:29,882;DEBUG;receive_response_headers.started request=<Request [b'POST']>
+2025-03-07 07:25:29,916;DEBUG;https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+2025-03-07 07:25:30,033;DEBUG;receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Server', b'SynGX'), (b'Date', b'Fri, 07 Mar 2025 04:25:30 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Content-Length', b'271'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Credentials', b'true'), (b'Access-Control-Allow-Headers', b'Origin, X-Requested-With, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'https://beta.saluteai.sberdevices.ru'), (b'X-Request-Id', b'889a16cb-cdb3-45fc-abd8-c98c535b4339'), (b'X-Session-Id', b'0cb86836-bb35-4c0e-98fb-4742945a09b9'), (b'Allow', b'GET, POST'), (b'X-Frame-Options', b'SAMEORIGIN'), (b'X-XSS-Protection', b'1; mode=block'), (b'X-Content-Type-Options', b'nosniff'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-03-07 07:25:30,034;INFO;HTTP Request: POST https://gigachat.devices.sberbank.ru/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-03-07 07:25:30,035;DEBUG;receive_response_body.started request=<Request [b'POST']>
+2025-03-07 07:25:30,035;DEBUG;receive_response_body.complete
+2025-03-07 07:25:30,035;DEBUG;response_closed.started
+2025-03-07 07:25:30,035;DEBUG;response_closed.complete
+2025-03-07 07:25:30,038;DEBUG;BINARY RES Yes
+2025-03-07 07:25:30,038;INFO;-BINARY SEARCH YES--
+2025-03-07 07:25:30,039;INFO;--ASSESS GRADED DOCUMENTS--
+2025-03-07 07:25:30,039;INFO;-DECISION: GENERATE--
+2025-03-07 07:25:30,041;INFO;--GENERATE--
+2025-03-07 07:25:30,042;WARNING;--FINAL DOCS-- [(Document(id='2', metadata={'doc_id': '2', 'source': 'tweet', 'source_doc': [Document(id='2', metadata={'source': 'tweet', 'doc_id': '2'}, page_content='Slava Rylkov this is a young developer who is 20 years old. He lives in Moscow, studies at the university. SLava is interested in programming and language models.')]}, page_content='Slava Rylkov this is a young developer who is 20 years old. He lives in Moscow, studies at the university. SLava is interested in programming and language models.'), 121.42662333225695), (Document(id='4', metadata={'doc_id': '4', 'source': 'tweet', 'source_doc': [None]}, page_content='The latest of  SLava project was the development of a financial platform and the creation of a smart assistant.'), 269.4628913112558)]
+2025-03-07 07:25:30,048;DEBUG;send_request_headers.started request=<Request [b'POST']>
+2025-03-07 07:25:30,048;DEBUG;send_request_headers.complete
+2025-03-07 07:25:30,049;DEBUG;send_request_body.started request=<Request [b'POST']>
+2025-03-07 07:25:30,049;DEBUG;send_request_body.complete
+2025-03-07 07:25:30,049;DEBUG;receive_response_headers.started request=<Request [b'POST']>
+2025-03-07 07:25:30,402;DEBUG;receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Server', b'SynGX'), (b'Date', b'Fri, 07 Mar 2025 04:25:30 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Content-Length', b'504'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Credentials', b'true'), (b'Access-Control-Allow-Headers', b'Origin, X-Requested-With, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'https://beta.saluteai.sberdevices.ru'), (b'X-Request-Id', b'68fa0c67-f6f5-4589-b254-04aae6243693'), (b'X-Session-Id', b'0d550ae5-4ba4-4983-bbe8-7aa1cffc5dcf'), (b'Allow', b'GET, POST'), (b'X-Frame-Options', b'SAMEORIGIN'), (b'X-XSS-Protection', b'1; mode=block'), (b'X-Content-Type-Options', b'nosniff'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-03-07 07:25:30,403;INFO;HTTP Request: POST https://gigachat.devices.sberbank.ru/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-03-07 07:25:30,404;DEBUG;receive_response_body.started request=<Request [b'POST']>
+2025-03-07 07:25:30,404;DEBUG;receive_response_body.complete
+2025-03-07 07:25:30,404;DEBUG;response_closed.started
+2025-03-07 07:25:30,405;DEBUG;response_closed.complete
+2025-03-07 07:25:30,408;DEBUG;Closing Client.session
+2025-03-07 07:25:30,408;DEBUG;Closing Client.session
+2025-03-07 07:25:30,418;DEBUG;Starting new HTTPS connection (2): us.i.posthog.com:443
+2025-03-07 07:25:30,990;DEBUG;https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+2025-03-07 07:26:44,271;DEBUG;Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+2025-03-07 07:26:44,275;INFO;Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2025-03-07 07:26:44,391;DEBUG;Starting component System
+2025-03-07 07:26:44,391;DEBUG;Starting component Posthog
+2025-03-07 07:26:44,391;DEBUG;Starting component OpenTelemetryClient
+2025-03-07 07:26:44,392;DEBUG;Starting component SqliteDB
+2025-03-07 07:26:44,394;DEBUG;Starting component SimpleQuotaEnforcer
+2025-03-07 07:26:44,394;DEBUG;Starting component SimpleRateLimitEnforcer
+2025-03-07 07:26:44,394;DEBUG;Starting component LocalSegmentManager
+2025-03-07 07:26:44,394;DEBUG;Starting component LocalExecutor
+2025-03-07 07:26:44,394;DEBUG;Starting component SegmentAPI
+2025-03-07 07:26:44,409;DEBUG;Collection example already exists, returning existing collection.
+2025-03-07 07:26:44,411;DEBUG;Starting new HTTPS connection (1): router.huggingface.co:443
+2025-03-07 07:26:44,899;DEBUG;Starting new HTTPS connection (1): us.i.posthog.com:443
+2025-03-07 07:26:44,917;DEBUG;https://router.huggingface.co:443 "POST /hf-inference/pipeline/feature-extraction/mixedbread-ai/mxbai-embed-large-v1 HTTP/1.1" 200 81508
+2025-03-07 07:26:45,054;DEBUG;Starting component PersistentLocalHnswSegment
+2025-03-07 07:26:45,169;DEBUG;Starting new HTTPS connection (1): api.smith.langchain.com:443
+2025-03-07 07:26:45,176;DEBUG;Starting new HTTPS connection (1): api.smith.langchain.com:443
+2025-03-07 07:26:45,392;DEBUG;https://api.smith.langchain.com:443 "GET /commits/rlm/rag-prompt/latest HTTP/1.1" 200 844
+2025-03-07 07:26:45,400;DEBUG;https://api.smith.langchain.com:443 "GET /info HTTP/1.1" 200 672
+2025-03-07 07:26:45,415;INFO;--RETRIEVE--
+2025-03-07 07:26:45,526;DEBUG;https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+2025-03-07 07:26:45,811;DEBUG;https://router.huggingface.co:443 "POST /hf-inference/pipeline/feature-extraction/mixedbread-ai/mxbai-embed-large-v1 HTTP/1.1" 200 20390
+2025-03-07 07:26:45,829;INFO;--RETRIEVE--RETRIEVED DOCS-- 
+ [(Document(id='2', metadata={'doc_id': '2', 'source': 'tweet', 'source_doc': [Document(id='2', metadata={'source': 'tweet', 'doc_id': '2'}, page_content='Slava Rylkov this is a young developer who is 20 years old. He lives in Moscow, studies at the university. SLava is interested in programming and language models.')]}, page_content='Slava Rylkov this is a young developer who is 20 years old. He lives in Moscow, studies at the university. SLava is interested in programming and language models.'), 121.42662333225695), (Document(id='4', metadata={'doc_id': '4', 'source': 'tweet', 'source_doc': [None]}, page_content='The latest of  SLava project was the development of a financial platform and the creation of a smart assistant.'), 269.4628913112558)]
+2025-03-07 07:26:45,831;INFO;--CHECK DOCUMENT RELEVANCE TO QUESTION--
+2025-03-07 07:26:45,843;DEBUG;load_ssl_context verify=False cert=None trust_env=True http2=False
+2025-03-07 07:26:45,844;DEBUG;connect_tcp.started host='ngw.devices.sberbank.ru' port=9443 local_address=None timeout=30.0 socket_options=None
+2025-03-07 07:26:45,856;DEBUG;connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7f976ca0dc10>
+2025-03-07 07:26:45,856;DEBUG;start_tls.started ssl_context=<ssl.SSLContext object at 0x7f976c987e30> server_hostname='ngw.devices.sberbank.ru' timeout=30.0
+2025-03-07 07:26:45,873;DEBUG;start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7f976ca0e810>
+2025-03-07 07:26:45,874;DEBUG;send_request_headers.started request=<Request [b'POST']>
+2025-03-07 07:26:45,875;DEBUG;send_request_headers.complete
+2025-03-07 07:26:45,875;DEBUG;send_request_body.started request=<Request [b'POST']>
+2025-03-07 07:26:45,875;DEBUG;send_request_body.complete
+2025-03-07 07:26:45,875;DEBUG;receive_response_headers.started request=<Request [b'POST']>
+2025-03-07 07:26:45,933;DEBUG;receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Server', b'SynGX'), (b'Date', b'Fri, 07 Mar 2025 04:26:45 GMT'), (b'Content-Type', b'application/json'), (b'Content-Length', b'1279'), (b'Connection', b'keep-alive'), (b'Vary', b'Origin'), (b'Vary', b'Access-Control-Request-Method'), (b'Vary', b'Access-Control-Request-Headers'), (b'Cache-Control', b'no-cache, no-store, max-age=0, must-revalidate'), (b'Pragma', b'no-cache'), (b'Expires', b'0'), (b'X-Content-Type-Options', b'nosniff'), (b'Strict-Transport-Security', b'max-age=31536000 ; includeSubDomains'), (b'X-Frame-Options', b'DENY'), (b'X-XSS-Protection', b'1 ; mode=block'), (b'Referrer-Policy', b'no-referrer'), (b'Allow', b'GET, POST'), (b'X-Frame-Options', b'SAMEORIGIN'), (b'X-XSS-Protection', b'1; mode=block'), (b'X-Content-Type-Options', b'nosniff'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-03-07 07:26:45,935;INFO;HTTP Request: POST https://ngw.devices.sberbank.ru:9443/api/v2/oauth "HTTP/1.1 200 OK"
+2025-03-07 07:26:45,935;DEBUG;receive_response_body.started request=<Request [b'POST']>
+2025-03-07 07:26:45,936;DEBUG;receive_response_body.complete
+2025-03-07 07:26:45,936;DEBUG;response_closed.started
+2025-03-07 07:26:45,936;DEBUG;response_closed.complete
+2025-03-07 07:26:45,937;DEBUG;OAUTH UPDATE TOKEN
+2025-03-07 07:26:45,938;DEBUG;load_ssl_context verify=False cert=None trust_env=True http2=False
+2025-03-07 07:26:45,941;DEBUG;connect_tcp.started host='gigachat.devices.sberbank.ru' port=443 local_address=None timeout=30.0 socket_options=None
+2025-03-07 07:26:45,954;DEBUG;connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7f976ca233d0>
+2025-03-07 07:26:45,954;DEBUG;start_tls.started ssl_context=<ssl.SSLContext object at 0x7f976ca30050> server_hostname='gigachat.devices.sberbank.ru' timeout=30.0
+2025-03-07 07:26:45,977;DEBUG;start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7f976dd3b210>
+2025-03-07 07:26:45,977;DEBUG;send_request_headers.started request=<Request [b'POST']>
+2025-03-07 07:26:45,978;DEBUG;send_request_headers.complete
+2025-03-07 07:26:45,978;DEBUG;send_request_body.started request=<Request [b'POST']>
+2025-03-07 07:26:45,979;DEBUG;send_request_body.complete
+2025-03-07 07:26:45,979;DEBUG;receive_response_headers.started request=<Request [b'POST']>
+2025-03-07 07:26:46,125;DEBUG;receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Server', b'SynGX'), (b'Date', b'Fri, 07 Mar 2025 04:26:46 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Content-Length', b'271'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Credentials', b'true'), (b'Access-Control-Allow-Headers', b'Origin, X-Requested-With, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'https://beta.saluteai.sberdevices.ru'), (b'X-Request-Id', b'8df8e0d2-1a3d-4951-b46e-5743b5a58e48'), (b'X-Session-Id', b'245f33c9-d5d4-4b3b-a321-bdf24b3d4216'), (b'Allow', b'GET, POST'), (b'X-Frame-Options', b'SAMEORIGIN'), (b'X-XSS-Protection', b'1; mode=block'), (b'X-Content-Type-Options', b'nosniff'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-03-07 07:26:46,126;INFO;HTTP Request: POST https://gigachat.devices.sberbank.ru/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-03-07 07:26:46,126;DEBUG;receive_response_body.started request=<Request [b'POST']>
+2025-03-07 07:26:46,127;DEBUG;receive_response_body.complete
+2025-03-07 07:26:46,127;DEBUG;response_closed.started
+2025-03-07 07:26:46,127;DEBUG;response_closed.complete
+2025-03-07 07:26:46,130;DEBUG;BINARY RES Yes
+2025-03-07 07:26:46,130;INFO;-BINARY SEARCH YES--
+2025-03-07 07:26:46,131;INFO;--ASSESS GRADED DOCUMENTS--
+2025-03-07 07:26:46,131;INFO;-DECISION: GENERATE--
+2025-03-07 07:26:46,133;INFO;--GENERATE--
+2025-03-07 07:26:46,134;WARNING;--FINAL DOCS-- [(Document(id='2', metadata={'doc_id': '2', 'source': 'tweet', 'source_doc': [Document(id='2', metadata={'source': 'tweet', 'doc_id': '2'}, page_content='Slava Rylkov this is a young developer who is 20 years old. He lives in Moscow, studies at the university. SLava is interested in programming and language models.')]}, page_content='Slava Rylkov this is a young developer who is 20 years old. He lives in Moscow, studies at the university. SLava is interested in programming and language models.'), 121.42662333225695), (Document(id='4', metadata={'doc_id': '4', 'source': 'tweet', 'source_doc': [None]}, page_content='The latest of  SLava project was the development of a financial platform and the creation of a smart assistant.'), 269.4628913112558)]
+2025-03-07 07:26:46,137;WARNING;--FINAL PROMPT-- messages=[HumanMessage(content="You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.\nQuestion: who is Slava Rylkov and what does he do? \nContext: Slava Rylkov this is a young developer who is 20 years old. He lives in Moscow, studies at the university. SLava is interested in programming and language models.\nThe latest of  SLava project was the development of a financial platform and the creation of a smart assistant. \nAnswer:", additional_kwargs={}, response_metadata={})]
+2025-03-07 07:26:46,140;DEBUG;send_request_headers.started request=<Request [b'POST']>
+2025-03-07 07:26:46,140;DEBUG;send_request_headers.complete
+2025-03-07 07:26:46,140;DEBUG;send_request_body.started request=<Request [b'POST']>
+2025-03-07 07:26:46,141;DEBUG;send_request_body.complete
+2025-03-07 07:26:46,141;DEBUG;receive_response_headers.started request=<Request [b'POST']>
+2025-03-07 07:26:46,186;DEBUG;https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+2025-03-07 07:26:46,487;DEBUG;receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Server', b'SynGX'), (b'Date', b'Fri, 07 Mar 2025 04:26:46 GMT'), (b'Content-Type', b'application/json; charset=utf-8'), (b'Content-Length', b'503'), (b'Connection', b'keep-alive'), (b'Access-Control-Allow-Credentials', b'true'), (b'Access-Control-Allow-Headers', b'Origin, X-Requested-With, Content-Type, Accept, Authorization'), (b'Access-Control-Allow-Methods', b'GET, POST, DELETE, OPTIONS'), (b'Access-Control-Allow-Origin', b'https://beta.saluteai.sberdevices.ru'), (b'X-Request-Id', b'3a599175-e3ff-4b5a-ac01-9e5d468d977e'), (b'X-Session-Id', b'210bb407-2d9b-4648-a41f-7d30d8dcf029'), (b'Allow', b'GET, POST'), (b'X-Frame-Options', b'SAMEORIGIN'), (b'X-XSS-Protection', b'1; mode=block'), (b'X-Content-Type-Options', b'nosniff'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-03-07 07:26:46,488;INFO;HTTP Request: POST https://gigachat.devices.sberbank.ru/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-03-07 07:26:46,488;DEBUG;receive_response_body.started request=<Request [b'POST']>
+2025-03-07 07:26:46,489;DEBUG;receive_response_body.complete
+2025-03-07 07:26:46,489;DEBUG;response_closed.started
+2025-03-07 07:26:46,489;DEBUG;response_closed.complete
+2025-03-07 07:26:46,494;DEBUG;Closing Client.session
+2025-03-07 07:26:46,495;DEBUG;Closing Client.session
