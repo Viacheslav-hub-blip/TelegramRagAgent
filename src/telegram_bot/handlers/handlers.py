@@ -1,24 +1,27 @@
 import asyncio
-import functools
 import os
-from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from pprint import pprint
 from typing import List, NamedTuple
+# AIOGRAM
 from aiogram import Router, F, Bot
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
+from aiogram.fsm.context import FSMContext
+# LANGCHAIN
 from langchain_community.tools import TavilySearchResults
-from src.telegram_bot.keyboards.all_kb import create_rat_kb
+# TELEGRAMBOT
 from src.telegram_bot.keyboards.inline_kbs import ease_link_kb, faq_kb
 from src.telegram_bot.create_bot import bot
-from aiogram.fsm.context import FSMContext
+# SERVICES
 from src.telegram_bot.services.llm_model_service import LLMModelService
 from src.telegram_bot.services.text_splitter_service import TextSplitterService
 from src.telegram_bot.services.vectore_store_service import VecStoreService
+from src.telegram_bot.services.RetrieverService import RetrieverSrvice
+from src.telegram_bot.services.documents_saver_service import DocumentsSaver
 from src.file_reader import FileReader
-from src.LangChainVec import get_or_create_retriever
+# AGENT
 from src.langchain_model_init import model
 from src.graphs.simpleRag.agent import RagAgent
 
@@ -65,7 +68,7 @@ def _format_answer(answer: AgentAnswer) -> str:
 
 
 def _invoke_agent(user_id: str, question: str) -> AgentAnswer:
-    retriever = get_or_create_retriever(user_id)
+    retriever = RetrieverSrvice.get_or_create_retriever(user_id)
     rag_agent = RagAgent(model=model, retriever=retriever, web_search_tool=tool)
     result = rag_agent().invoke({"question": question})
     question, generation, web_search = result["question"], result["generation"], result["web_search"]
@@ -74,7 +77,6 @@ def _invoke_agent(user_id: str, question: str) -> AgentAnswer:
         pprint(result["documents"])
     except:
         documents = []
-
     return AgentAnswer(question, generation, web_search, documents)
 
 
@@ -86,7 +88,7 @@ def _save_summarize_doc_content(input_format: str, file_path: str, language: Lis
         language=language,
         generate_picture_images=False
     )
-    retriever = get_or_create_retriever(user_id)
+    retriever = RetrieverSrvice.get_or_create_retriever(user_id)
     vecstore_store_service = VecStoreService(file_reader, text_splitter, llm_model_service, retriever)
     summarize_content = vecstore_store_service.add_docs_in_retriever()
     return summarize_content
@@ -104,6 +106,16 @@ async def _start_handler(msg: Message):
         "Привет!\nЯ чат бот, который поможет тебе работать  с документами с помощью GigaChat!\nДля начала работы просто отправьте фаил\nЕсли у вас нет файла, то просто зайде мне любой вопрос и я на него отвечу",
         reply_markup=faq_kb()
     )
+
+
+@router.message(Command("clear_documents"))
+async def clear_documents(msg: Message):
+    try:
+        RetrieverSrvice.clear_retriever(str(msg.from_user.id))
+        DocumentsSaver().clear_user_directory(str(msg.from_user.id))
+        await msg.answer("Все загруженные документы удалены")
+    except:
+        await msg.answer("По некоторым причинам мне сейчас не удалось удалить все документы")
 
 
 @router.message(lambda message: message.document is not None)
@@ -126,10 +138,6 @@ async def choose_file_language(message: Message, state: FSMContext):
             "Супер! Теперь мне осталось прочитать файл, чтобы ответить на ваши вопросы. Пожалуйста, подождите")
         await state.set_state(LoadFile.process_file)
 
-        # data = await state.get_data()
-        # result = _save_summarize_doc_content('pdf', data.get("file_path"), [data.get("language")],
-        #                                      str(message.from_user.id))
-
         loop = asyncio.get_event_loop()
         data = await state.get_data()
         result = await loop.run_in_executor(None,
@@ -138,15 +146,6 @@ async def choose_file_language(message: Message, state: FSMContext):
                                             data.get("file_path"),
                                             [data.get("language")],
                                             str(message.from_user.id))
-        # with ProcessPoolExecutor(max_workers=2) as pool:
-        #     data = await state.get_data()
-        #     result = await loop.run_in_executor(pool, functools.partial(
-        #         _save_summarize_doc_content,
-        #         'pdf',
-        #         data.get("file_path"),
-        #         [data.get("language")],
-        #         str(message.from_user.id)
-        #     ))
 
         await message.answer("".join(result))
         await state.clear()

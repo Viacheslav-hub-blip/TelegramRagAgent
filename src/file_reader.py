@@ -8,11 +8,8 @@ from docling.document_converter import (
     PdfFormatOption,
 )
 from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode, TesseractOcrOptions
-from src.langchain_model_init import model
 from transformers import AutoTokenizer
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.schema.document import Document
-from src.LangChainVec import get_or_create_retriever
 from pprint import pprint
 
 

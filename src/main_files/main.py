@@ -9,7 +9,7 @@ from src.file_reader import FileReader
 from src.graphs.simpleRag.agent import RagAgent
 from transformers import AutoTokenizer
 from src.langchain_model_init import model
-from src.LangChainVec import get_or_create_retriever
+from src.telegram_bot.services.RetrieverService import get_or_create_retriever
 from langchain_community.tools.tavily_search import TavilySearchResults
 
 from src.telegram_bot.services.llm_model_service import LLMModelService

@@ -1,26 +1,14 @@
-import uuid
-
 import tesserocr
 from docling.datamodel.base_models import InputFormat
-from docling_core.types.doc import ImageRefMode
 from docling.document_converter import DocumentConverter, PdfFormatOption
-from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode, TesseractOcrOptions, \
-    OcrMacOptions
+from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode, TesseractOcrOptions
 from docling.datamodel.settings import settings
-from langchain.schema.document import Document
 from pathlib import Path
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from transformers import AutoTokenizer
-from src.LangChainVec import retriever
 
-from langchain_core.runnables import RunnableLambda, RunnablePassthrough, chain
-from langchain_core.messages import SystemMessage, HumanMessage
-from base64 import b64decode
 import os
 
-from pprint import pprint
 from typing import NamedTuple
 
 
