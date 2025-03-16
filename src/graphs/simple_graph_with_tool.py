@@ -17,7 +17,7 @@ from typing import List
 import logging
 from pprint import pprint
 
-from src.custon_multivec_retriever import CustomMultiVecRetriever
+from src.telegram_bot.services.custon_multivec_retriever import CustomMultiVecRetriever
 
 logger = logging.getLogger(__name__)
 
