@@ -67,7 +67,8 @@ if __name__ == '__main__':
     # ИЗВЛЕЧЕНИЕ ТЕКСТА
     file_reader = FileReader(input_format='pdf',
                              tessdata_path="/usr/share/tesseract-ocr/5/tessdata/",
-                             file_path=Path("/home/alex/PycharmProjects/pythonProject/src/telegram_bot/temp_downloads/BQACAgIAAxkBAAOEZ9F9pz1w1EsKaqXc_Zgbiwzv3rsAAr1qAAKk-JBKakiOvKfo8yk2BA.pdf"),
+                             file_path=Path(
+                                 "/src/temp_downloads/BQACAgIAAxkBAAOEZ9F9pz1w1EsKaqXc_Zgbiwzv3rsAAr1qAAKk-JBKakiOvKfo8yk2BA.pdf"),
                              language=["eng"])
     result_read = file_reader.get_content()
     result_markdown = result_read.document.export_to_markdown()

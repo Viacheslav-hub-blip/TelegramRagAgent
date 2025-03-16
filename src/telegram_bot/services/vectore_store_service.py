@@ -47,6 +47,6 @@ class VecStoreService:
             enumerate(result_summary.summary)
         ]
         self.retriever.vectorstore.add_documents(summarize_docs)
-        user_id = self.retriever.vectorstore._collection_name
+        user_id = self.retriever.vectorstore._collection_name[5:]
         documentSaver.save_source_docs_in_files(user_id, doc_ids, split_docs)
         return result_summary.summary

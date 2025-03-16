@@ -1,5 +1,9 @@
+import shutil
+
 import chromadb
 import os
+
+from langchain_core.stores import InMemoryStore
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from src.telegram_bot.services.custon_multivec_retriever import CustomMultiVecRetriever
@@ -15,9 +19,10 @@ class RetrieverSrvice:
     @staticmethod
     def get_or_create_retriever(user_id: str):
         collection_name = f"user_{user_id}"
-        client = chromadb.PersistentClient(path=f"./chroma_db")
+        client = chromadb.PersistentClient(path=f"/home/alex/PycharmProjects/pythonProject/src/chroma_db_{user_id}")
         id_key = "doc_id"
-
+        print("coll list in get", client.list_collections())
+        store = InMemoryStore()
         if collection_name in [name for name in client.list_collections()]:
             collection = client.get_collection(collection_name)
 
@@ -29,6 +34,7 @@ class RetrieverSrvice:
 
             retriever = CustomMultiVecRetriever(
                 vectorstore=vec_store,
+                docstore=store,
                 id_key=id_key,
                 search_kwargs={"k": 5}
             )
@@ -38,10 +44,11 @@ class RetrieverSrvice:
             vec_store = Chroma(
                 collection_name=collection_name,
                 embedding_function=embeddings,
-                persist_directory="./chroma_db",
+                persist_directory=f"/home/alex/PycharmProjects/pythonProject/src/chroma_db_{user_id}",
             )
             retriever = CustomMultiVecRetriever(
                 vectorstore=vec_store,
+                docstore=store,
                 id_key=id_key,
                 search_kwargs={"k": 5}
             )
@@ -51,10 +58,12 @@ class RetrieverSrvice:
     @staticmethod
     def clear_retriever(user_id: str):
         collection_name = f"user_{user_id}"
-        client = chromadb.PersistentClient(path=f"./chroma_db")
-
+        client = chromadb.PersistentClient(path=f"/home/alex/PycharmProjects/pythonProject/src/chroma_db_{user_id}")
+        print("coll list", client.list_collections())
         if collection_name in [name for name in client.list_collections()]:
-            client.delete_collection(collection_name)
+            shutil.rmtree(f"/home/alex/PycharmProjects/pythonProject/src/chroma_db_{user_id}")
+            client.clear_system_cache()
+            print("удаление ретривера")
 
 # if __name__ == "__main__":
 #     user_id = "12345"

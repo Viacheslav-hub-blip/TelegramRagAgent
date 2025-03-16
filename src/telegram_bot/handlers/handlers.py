@@ -59,10 +59,10 @@ def _collect_source_links(source_docs: list, max_links: int = 2) -> list:
 def _format_answer(answer: AgentAnswer) -> str:
     if answer.web_search not in ['No', 'Нет', 'Нет', 'NO']:
         links = "\n".join(_collect_source_links(answer.source_docs))
-        res_ans = (f"Ваш вопрос: {answer.question}\n\n"
-                   f"Мой ответ:\n {answer.generation}\n"
-                   f"Для ответа я использовал интернет ресурсы:\n"
-                   f"{links}")
+        res_ans = (
+            f"Мой ответ:\n {answer.generation}\n"
+            f"Для ответа я использовал интернет ресурсы:\n"
+            f"{links}")
         return res_ans
     return f"{answer.generation}"
 
@@ -94,16 +94,33 @@ def _save_summarize_doc_content(input_format: str, file_path: str, language: Lis
     return summarize_content
 
 
+def get_old_users_ids() -> List[str]:
+    with open("/home/alex/PycharmProjects/pythonProject/src/users_ids") as f:
+        ids = f.readlines()
+    return ids
+
+
+def write_new_ids(ids: List[str]) -> None:
+    with open("/home/alex/PycharmProjects/pythonProject/src/users_ids", "w") as f:
+        f.writelines(ids)
+
+
 async def _save_file(file_id) -> str:
-    destination = rf"/home/alex/PycharmProjects/pythonProject/src/telegram_bot/temp_downloads/{file_id}.pdf"
+    destination = rf"/home/alex/PycharmProjects/pythonProject/src/temp_downloads/{file_id}.pdf"
     await Bot.download(bot, file_id, destination)
     return destination
 
 
 @router.message(CommandStart())
 async def _start_handler(msg: Message):
+    old_users_ids = get_old_users_ids()
+    if str(msg.from_user.id) not in old_users_ids:
+        old_users_ids.append(str(msg.from_user.id))
+        write_new_ids(old_users_ids)
     await msg.answer(
-        "Привет!\nЯ чат бот, который поможет тебе работать  с документами с помощью GigaChat!\nДля начала работы просто отправьте фаил\nЕсли у вас нет файла, то просто зайде мне любой вопрос и я на него отвечу",
+        "Привет!\nЯ чат бот, который поможет тебе работать с документами с помощью GigaChat!"
+        "\nДля начала работы просто отправьте файл"
+        "\nЕсли у вас нет файла, то просто зайде мне любой вопрос и я на него отвечу",
         reply_markup=faq_kb()
     )
 
@@ -111,6 +128,7 @@ async def _start_handler(msg: Message):
 @router.message(Command("clear_documents"))
 async def clear_documents(msg: Message):
     try:
+        print(str(msg.from_user.id))
         RetrieverSrvice.clear_retriever(str(msg.from_user.id))
         DocumentsSaver().clear_user_directory(str(msg.from_user.id))
         await msg.answer("Все загруженные документы удалены")
@@ -135,7 +153,8 @@ async def choose_file_language(message: Message, state: FSMContext):
     if message.text in ["eng", "rus"]:
         await state.update_data(language=message.text)
         await message.answer(
-            "Супер! Теперь мне осталось прочитать файл, чтобы ответить на ваши вопросы. Пожалуйста, подождите")
+            "Супер! Теперь мне осталось прочитать файл, чтобы ответить на ваши вопросы. Пожалуйста, подождите\n"
+            "Пока я читаю файл, вы можете продолжать задавать мне вопросы. Когда я закончу обработку, я напишу")
         await state.set_state(LoadFile.process_file)
 
         loop = asyncio.get_event_loop()
@@ -146,16 +165,10 @@ async def choose_file_language(message: Message, state: FSMContext):
                                             data.get("file_path"),
                                             [data.get("language")],
                                             str(message.from_user.id))
-
-        await message.answer("".join(result))
+        await message.answer("".join(result)[:4000])
         await state.clear()
     else:
         await message.answer("Я пока не поддерживаю этот язык")
-
-
-# @router.message(F.text, LoadFile.process_file)
-# async def message_in_load_file_state(message: Message):
-#     await message.answer("Пожалуйста, подождите")
 
 
 @router.callback_query(F.data == "faq")
@@ -164,8 +177,15 @@ async def start_handler(callback: CallbackQuery):
 
 
 @router.message()
-async def ant_message_handler(msg: Message):
-    await msg.answer("Пожалуйста, подождите, я печатаю")
+async def any_message_handler(msg: Message):
+    exist_loaded_docs = DocumentsSaver.check_exist_user_directory(str(msg.from_user.id))
+    if exist_loaded_docs:
+        send_message = await msg.answer(f"Пожалуйста, подождите, я печатаю.\n"
+                                        f"Кстати, у вас есть загруженные документы\n"
+                                        f"Если вы хотите их удалить, напишите '/clear_documents'")
+    else:
+        send_message = await msg.answer(f"Пожалуйста, подождите, я печатаю")
     answer = _invoke_agent(str(msg.from_user.id), msg.text)
     format_ans = _format_answer(answer)
+    await bot.delete_message(chat_id=msg.chat.id, message_id=send_message.message_id)
     await msg.answer(format_ans)

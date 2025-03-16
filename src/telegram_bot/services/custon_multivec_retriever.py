@@ -18,8 +18,7 @@ class CustomMultiVecRetriever(MultiVectorRetriever):
 
     @staticmethod
     def __get_source_docs(collection_name: str, doc_id: str) -> List[Document]:
-        # return self.docstore.mget([doc_id])
-        with open(rf"users_directory/{collection_name}/{doc_id}.txt", 'r') as f:
+        with open(rf"/home/alex/PycharmProjects/pythonProject/src/users_directory/{collection_name}/{doc_id}.txt", 'r') as f:
             content = f.readlines()
             doc = Document(page_content="".join(content))
         return [doc]
@@ -29,13 +28,10 @@ class CustomMultiVecRetriever(MultiVectorRetriever):
         result_search_sim_docs = self.vectorstore.similarity_search_with_score(
             query, **self.search_kwargs
         )
-
+        print("RESULT SIM SEARCH", result_search_sim_docs)
         for result_search_sim_doc in result_search_sim_docs:
             collection_name = self.vectorstore._collection_name
             doc_id = result_search_sim_doc[0].metadata["doc_id"]
-
-            # source_doc = self.docstore.mget([doc_id])
-
             source_doc = self.__get_source_docs(collection_name, doc_id)
             result_search_sim_doc[0].metadata["source_doc"] = source_doc
 
