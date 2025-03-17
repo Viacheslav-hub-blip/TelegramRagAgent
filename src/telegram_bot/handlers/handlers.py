@@ -33,7 +33,6 @@ router = Router()
 DOWNLOAD_PATH = "/src/telegram_bot/temp_downloads"
 
 tool = TavilySearchResults(k=3)
-text_splitter = TextSplitterService().create_text_splitter()
 llm_model_service = LLMModelService(model)
 
 
@@ -91,7 +90,7 @@ def _save_summarize_doc_content(input_format: str, file_path: str, language: Lis
         generate_picture_images=False
     )
     retriever = RetrieverSrvice.get_or_create_retriever(user_id)
-    vecstore_store_service = VecStoreService(file_reader, text_splitter, llm_model_service, retriever)
+    vecstore_store_service = VecStoreService(file_reader, llm_model_service, retriever)
     summarize_content = vecstore_store_service.add_docs_from_reader_in_retriever()
     return summarize_content
 

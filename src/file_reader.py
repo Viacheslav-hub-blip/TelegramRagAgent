@@ -91,14 +91,14 @@ if __name__ == '__main__':
     # result_summary = file_reader.get_summarize_docs_content(split_docs, model)
     # # print("----------RESULT SUMMARY----------")
     # # print(result_summary)
-    # # print('count sum docs', len(result_summary.summary_with_questions))
-    # pprint(result_summary.summary_with_questions)
+    # # print('count sum docs', len(result_summary.summary_texts))
+    # pprint(result_summary.summary_texts)
     #
     # # ДОБАВЛЕНИЕ ФРАГМЕНТОВ В ВЕКТОРНУЮ БАЗУ
     # doc_ids = [str(i) for i in range(len(split_docs))]
     # summarize_docs = [
-    #     Document(page_content=summary_with_questions, metadata={"doc_id": doc_ids[i]}) for i, summary_with_questions in
-    #     enumerate(result_summary.summary_with_questions)
+    #     Document(page_content=summary_texts, metadata={"doc_id": doc_ids[i]}) for i, summary_texts in
+    #     enumerate(result_summary.summary_texts)
     # ]
     # retriever = get_or_create_retriever()
     # retriever.vectorstore.add_documents(summarize_docs)

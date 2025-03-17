@@ -66,11 +66,11 @@ split_docs = text_splitter.split_text(result)
 print('spli texts', split_docs)
 prompt_text = """
 You are an assistant tasked with summarizing tables and text.
-Give a concise summary_with_questions of the table or text.
+Give a concise summary_texts of the table or text.
 
-Respond only with the summary_with_questions, no additionnal comment.
-Do not start your message by saying "Here is a summary_with_questions" or anything like that.
-Just give the summary_with_questions as it is.
+Respond only with the summary_texts, no additionnal comment.
+Do not start your message by saying "Here is a summary_texts" or anything like that.
+Just give the summary_texts as it is.
 
 text chunk: {element}
 
@@ -85,7 +85,7 @@ text chunk: {element}
 # doc_ids = [str(i) for i in range(len(split_docs))]
 #
 # summarize_docs = [
-#     Document(page_content=summary_with_questions, metadata={"doc_id": doc_ids[i]}) for i, summary_with_questions in enumerate(text_sum)
+#     Document(page_content=summary_texts, metadata={"doc_id": doc_ids[i]}) for i, summary_texts in enumerate(text_sum)
 # ]
 # retriever.vectorstore.add_documents(summarize_docs)
 # retriever.docstore.mset(list(zip(doc_ids, split_docs)))

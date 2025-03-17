@@ -7,7 +7,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 
 
 class SummarizeContentAndDocs(NamedTuple):
-    summary_with_questions: List[str]
+    summary_texts: List[str]
     source_docs: List[str]
 
 
@@ -20,28 +20,11 @@ class LLMModelService:
     def __init__(self, model: BaseChatModel):
         self.model = model
 
-    def get_summarize_docs_content(self, split_docs: List[str]) -> SummarizeContentAndDocs:
-        prompt_text = """    
-           Вы помощник, который должен передавать краткое содержание текста, сохраняя все важные детали.\n
-           Предоставьте краткое содержание,чтобы сохранить все важные моменты и детали.\n
-           Сильно не сокращайте текст, оставьте как можно можно больше деталей. удалите только маловажные моменты.\n
-           Для резюмирования используйте ТОЛЬКО ДАННЫЕ из предложенного фрагмента,\n
-           не используй свои знания или данные из других фрагментов, которых нет в предложенном.\n
-           Также напишите несколько вопросов, которые пользователь может задать к этому фрагменту.\n
-
-           Отвечайте только краткое содержание и вопросы к нему, без дополнительных комментариев. \n
-           Не нужно отделять вопросы от краткого содержания. Они должны идти подряд.\n
-           Не начинайте свое сообщение словами «Вот резюме», "В этом фрагменте", 'В этом документе' или чем то дургим\n
-           и не используюте отдельние "Вопросы к фрагменту" и подобное.\n
-           Просто дайте краткое содержание и вопросы. Вопросы всегда должны быть отделены от текста с помощью слова "Вопросы:"\n
-
-           text chunk: {element}
-
-           """
+    def _get_answer(self, prompt_text, documents: List[str]) -> SummarizeContentAndDocs:
         prompt = ChatPromptTemplate.from_template(prompt_text)
         summarize_chain = {"element": lambda x: x} | prompt | self.model | StrOutputParser()
-        batch_size = max(int(len(split_docs) * 0.2), 1)
-        batches_split_docs = [split_docs[i: i + batch_size] for i in range(0, len(split_docs), batch_size)]
+        batch_size = max(int(len(documents) * 0.2), 1)
+        batches_split_docs = [documents[i: i + batch_size] for i in range(0, len(documents), batch_size)]
         retries = 0
         max_retries = 5
         result_text_sum = []
@@ -61,4 +44,42 @@ class LLMModelService:
                     time.sleep(delay)
             else:
                 print(f"Не удалось обработать батч: {batch}")
-        return SummarizeContentAndDocs(result_text_sum, split_docs)
+        return SummarizeContentAndDocs(result_text_sum, documents)
+
+    def get_summarize_docs(self, documents: List[str]) -> str:
+        prompt_text = """    
+                  Вы помощник, который должен передавать краткое содержание текста, сохраняя все важные детали.\n
+                  Предоставьте краткое содержание,чтобы сохранить все важные моменты и детали.\n
+                  Сильно не сокращайте текст, оставьте как можно можно больше деталей. удалите только маловажные моменты.\n
+                  Для резюмирования используйте ТОЛЬКО ДАННЫЕ из предложенного фрагмента,\n
+                  не используй свои знания или данные из других фрагментов, которых нет в предложенном.\n
+                  Не начинайте свое сообщение словами «Вот резюме», "В этом фрагменте", 'В этом документе' или чем то дургим\n
+                  и не используюте отдельние "Вопросы к фрагменту" и подобное.\n
+                  Просто дайте краткое содержание.
+
+                  Исходный текст: {element}
+
+                  """
+        answer = self._get_answer(prompt_text, documents)
+        return "".join(answer.summary_texts)
+
+    def get_summarize_docs_with_questions(self, split_docs: List[str]) -> SummarizeContentAndDocs:
+        prompt_text = """    
+           Вы помощник, который должен передавать краткое содержание текста, сохраняя все важные детали.\n
+           Предоставьте краткое содержание,чтобы сохранить все важные моменты и детали.\n
+           Сильно не сокращайте текст, оставьте как можно можно больше деталей. удалите только маловажные моменты.\n
+           Для резюмирования используйте ТОЛЬКО ДАННЫЕ из предложенного фрагмента,\n
+           не используй свои знания или данные из других фрагментов, которых нет в предложенном.\n
+           Также напишите несколько вопросов, которые пользователь может задать к этому фрагменту.\n
+
+           Отвечайте только краткое содержание и вопросы к нему, без дополнительных комментариев. \n
+           Не нужно отделять вопросы от краткого содержания. Они должны идти подряд.\n
+           Не начинайте свое сообщение словами «Вот резюме», "В этом фрагменте", 'В этом документе' или чем то дургим\n
+           и не используюте отдельние "Вопросы к фрагменту" и подобное.\n
+           Просто дайте краткое содержание и вопросы. Вопросы всегда должны быть отделены от текста с помощью слова "Вопросы:"\n
+
+           text chunk: {element}
+
+           """
+        answer = self._get_answer(prompt_text, split_docs)
+        return answer
