@@ -1,8 +1,10 @@
 import asyncio
 import os
+import random
 from pathlib import Path
 from pprint import pprint
 from typing import List, NamedTuple
+from src.telegram_bot.config import some_questions_for_examples
 # AIOGRAM
 from aiogram import Router, F, Bot
 from aiogram.fsm.state import StatesGroup, State
@@ -60,8 +62,8 @@ def _format_answer(answer: AgentAnswer) -> str:
     if answer.web_search not in ['No', 'Нет', 'Нет', 'NO']:
         links = "\n".join(_collect_source_links(answer.source_docs))
         res_ans = (
-            f"Мой ответ:\n {answer.generation}\n"
-            f"Для ответа я использовал интернет ресурсы:\n"
+            f"Мой ответ:\n{answer.generation}\n"
+            f"Для ответа я использовал интернет ресурсы:\n\n"
             f"{links}")
         return res_ans
     return f"{answer.generation}"
@@ -90,7 +92,7 @@ def _save_summarize_doc_content(input_format: str, file_path: str, language: Lis
     )
     retriever = RetrieverSrvice.get_or_create_retriever(user_id)
     vecstore_store_service = VecStoreService(file_reader, text_splitter, llm_model_service, retriever)
-    summarize_content = vecstore_store_service.add_docs_in_retriever()
+    summarize_content = vecstore_store_service.add_docs_from_reader_in_retriever()
     return summarize_content
 
 
@@ -118,9 +120,10 @@ async def _start_handler(msg: Message):
         old_users_ids.append(str(msg.from_user.id))
         write_new_ids(old_users_ids)
     await msg.answer(
-        "Привет!\nЯ чат бот, который поможет тебе работать с документами с помощью GigaChat!"
+        f"Привет!\nЯ чат бот, который поможет тебе работать с документами с помощью GigaChat!"
         "\nДля начала работы просто отправьте файл"
-        "\nЕсли у вас нет файла, то просто зайде мне любой вопрос и я на него отвечу",
+        "\nЕсли у вас нет файла, то просто зайде мне любой вопрос и я на него отвечу\n\n"
+        f"Например: {some_questions_for_examples[random.randint(0, len(some_questions_for_examples))]}",
         reply_markup=faq_kb()
     )
 
@@ -150,11 +153,13 @@ async def handle_file(message: Message, state: FSMContext):
 
 @router.message(F.text, LoadFile.language)
 async def choose_file_language(message: Message, state: FSMContext):
-    if message.text in ["eng", "rus"]:
-        await state.update_data(language=message.text)
+    if message.text.lower() in ["eng", "rus"]:
+        await state.update_data(language=message.text.lower())
         await message.answer(
             "Супер! Теперь мне осталось прочитать файл, чтобы ответить на ваши вопросы. Пожалуйста, подождите\n"
-            "Пока я читаю файл, вы можете продолжать задавать мне вопросы. Когда я закончу обработку, я напишу")
+            "Когда я закончу обработку, я напишу. Пока я читаю файл, вы можете продолжать задавать мне вопросы.\n\n"
+            f"Например: {some_questions_for_examples[random.randint(0, len(some_questions_for_examples)-1)]}"
+        )
         await state.set_state(LoadFile.process_file)
 
         loop = asyncio.get_event_loop()
