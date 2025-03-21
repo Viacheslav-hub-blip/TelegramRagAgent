@@ -1,6 +1,7 @@
 import time
 from pathlib import Path
 from typing import List
+import re
 from docling.datamodel.document import ConversionResult
 from docling.datamodel.base_models import InputFormat
 from docling.document_converter import (
@@ -61,10 +62,20 @@ class FileReader:
         except Exception as e:
             return e
 
+    def get_markdown(self) -> str:
+        result_read = self.get_content()
+        result_markdown = result_read.document.export_to_markdown()
+        return result_markdown
+
+    @staticmethod
+    def get_cleaned_content(content: str) -> str:
+        cleaned_content = re.sub(r'\s+|<!-- image -->', ' ', content)
+        cleaned_content = re.sub(r'\s{2,}', ' ', cleaned_content)
+        return cleaned_content
+
 
 if __name__ == '__main__':
     t1 = time.time()
-    # ИЗВЛЕЧЕНИЕ ТЕКСТА
     file_reader = FileReader(input_format='pdf',
                              tessdata_path="/usr/share/tesseract-ocr/5/tessdata/",
                              file_path=Path(
@@ -72,41 +83,10 @@ if __name__ == '__main__':
                              language=["eng"])
     result_read = file_reader.get_content()
     result_markdown = result_read.document.export_to_markdown()
-    # print("----------RESULT MARKDOWN----------")
-    # pprint(result_markdown)
-
-    # РАЗДЕЛЕНИЕ ТЕКСТА НА ЧАСТИ
     model_id = "microsoft/Phi-3-mini-4k-instruct"
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     text_splitter = RecursiveCharacterTextSplitter.from_huggingface_tokenizer(
         tokenizer, chunk_size=400, chunk_overlap=0
     )
     split_docs = text_splitter.split_text(result_markdown)
-    # print("----------SPLIT DOCS----------")
-    # print('count docs', len(split_docs))
     pprint(split_docs)
-
-    # СЖАТИЕ ФРАГМЕНТОВ ТЕКСТА
-
-    # result_summary = file_reader.get_summarize_docs_content(split_docs, model)
-    # # print("----------RESULT SUMMARY----------")
-    # # print(result_summary)
-    # # print('count sum docs', len(result_summary.summary_texts))
-    # pprint(result_summary.summary_texts)
-    #
-    # # ДОБАВЛЕНИЕ ФРАГМЕНТОВ В ВЕКТОРНУЮ БАЗУ
-    # doc_ids = [str(i) for i in range(len(split_docs))]
-    # summarize_docs = [
-    #     Document(page_content=summary_texts, metadata={"doc_id": doc_ids[i]}) for i, summary_texts in
-    #     enumerate(result_summary.summary_texts)
-    # ]
-    # retriever = get_or_create_retriever()
-    # retriever.vectorstore.add_documents(summarize_docs)
-    #
-    # retriever.docstore.mset(list(zip(doc_ids, split_docs)))
-    #
-    # print("----------RESULT RETRIEVER----------")
-    # res = retriever.invoke("Что попросил сделать старик старуху?")
-    # pprint(res)
-    # t2 = time.time()
-    # print(t2 - t1)

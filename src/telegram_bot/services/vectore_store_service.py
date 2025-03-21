@@ -18,45 +18,27 @@ class SummDocsWithIdsAndSource(NamedTuple):
 
 
 class VecStoreService:
-    def __init__(self, file_reader: FileReader,
+    def __init__(self,
                  model_service: LLMModelService,
                  retriever: CustomMultiVecRetriever,
+                 content: str
                  ) -> None:
-        self.file_reader = file_reader
         self.model_service = model_service
         self.retriever = retriever
-
-    def _get_markdown_doc_content(self) -> str:
-        result_read = self.file_reader.get_content()
-        result_markdown = result_read.document.export_to_markdown()
-        return result_markdown
-
-    def _get_cleaned_markdown_doc_content(self) -> str:
-        content = self._get_markdown_doc_content()
-        cleaned_content = re.sub(r'\s+|<!-- image -->', ' ', content)
-        cleaned_content = re.sub(r'\s{2,}', ' ', cleaned_content)
-        return cleaned_content
-
-    def _get_split_documents(self) -> List[str]:
-        cleaned_content = self._get_cleaned_markdown_doc_content()
-        print("len cleaned_content", len(cleaned_content))
-        if len(cleaned_content) <= 1500:
-            return [cleaned_content]
-        elif 1500 < len(cleaned_content) <= 6000:
-            text_splitter = TextSplitterService(chunk_size=500, chunk_overlap=100).create_text_splitter()
-            cleaned_split_docs = text_splitter.split_text(cleaned_content)
-            return cleaned_split_docs
-        else:
-            text_splitter = TextSplitterService(chunk_size=700, chunk_overlap=150).create_text_splitter()
-            cleaned_split_docs = text_splitter.split_text(cleaned_content)
-            return cleaned_split_docs
+        self.content = content
 
     def _get_summary_doc_content(self, split_docs: List[str]) -> SummarizeContentAndDocs:
+        """Создает сжатые документы из полных фрагментов
+        Если документ всег один(его длина была слшком маленькой для разделения,он остается без изменений)
+        Иначе получаем SummarizeContentAndDocs с сжатыми документами и исходными
+        """
         if len(split_docs) == 1:
             return SummarizeContentAndDocs([self.model_service.get_summarize_docs(split_docs)], split_docs)
         return self.model_service.get_summarize_docs_with_questions(split_docs)
 
     def _add_metadata_in_docs(self, summarized_docs: list[str]) -> (list[Document], list[str]):
+        """Добавлет metadata в документы: уникальный id документа, принадлежность к группе и позицию документа
+        в группе. Сделано для дальнейшей возможности извлечения соседних документов"""
         doc_ids, docs_section = [str(uuid4()) for _ in range(len(summarized_docs))], str(uuid4())
         summarize_docs_with_metadata = [
             Document(
@@ -67,12 +49,16 @@ class VecStoreService:
         return summarize_docs_with_metadata, doc_ids
 
     def _get_summary_doc_with_metadata(self) -> SummDocsWithIdsAndSource:
-        source_documents: list[str] = self._get_split_documents()
-        summarized_docs: SummarizeContentAndDocs = self._get_summary_doc_content(source_documents)
+        """Возвращает сжатые документы с дополнительными данными, id документов
+        и исходные документы
+        """
+        source_split_documents: list[str] = TextSplitterService.get_split_documents(self.content)
+        summarized_docs: SummarizeContentAndDocs = self._get_summary_doc_content(source_split_documents)
         docs_with_metadata, doc_ids = self._add_metadata_in_docs(summarized_docs.summary_texts)
-        return SummDocsWithIdsAndSource(docs_with_metadata, doc_ids, source_documents)
+        return SummDocsWithIdsAndSource(docs_with_metadata, doc_ids, source_split_documents)
 
     def get_documents_without_add_questions(self, documents: list[Document]) -> list[str]:
+        """Удаляет из сжатых текстов дополнительные вопросы, которые были добавлены перед векторизацией"""
         documents_without_questions = [re.sub(r'Вопросы:.*?(?=\n\n|\Z)', '', summ.page_content, flags=re.DOTALL)
                                        for summ in
                                        documents]
