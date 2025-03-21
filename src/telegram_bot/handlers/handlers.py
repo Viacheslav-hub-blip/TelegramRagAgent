@@ -25,7 +25,7 @@ from src.telegram_bot.services.documents_saver_service import DocumentsSaver
 from src.file_reader import FileReader
 # AGENT
 from src.langchain_model_init import model
-from src.graphs.simpleRag.agent import RagAgent
+from src.agents.simpleRag.agent import RagAgent
 
 os.environ["TAVILY_API_KEY"] = "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"
 os.environ["NUMBA_NUM_THREADS"] = "1"

@@ -152,6 +152,9 @@ class RagAgent:
         else:
             return "grade_documents"
 
+    def near_documents(self, target_doc_id: str, target_doc_section: str, k: int = 1) -> List[Document]:
+        pass
+
     def retrieve_doc_search(self, state: GraphState):
         """
                Retrieve documents
@@ -163,16 +166,16 @@ class RagAgent:
                    state (dict): New key added to state, documents, that contains retrieved documents
         """
         self.logger.info("--RETRIEVE--")
-        question = state["question"]
+        question: str = state["question"]
         try:
-            documents = self.retriever.invoke(question)
+            documents: List[Document] = self.retriever.invoke(question)
         except Exception as e:
             print('Ошибка извлечения документов', Exception, e)
             exit()
 
         if len(documents) == 0:
             return {"forced_generation": "YES", "question": question}
-        self.logger.warning(f"--RETRIEVE--RETRIEVED DOCS-- \n {len(documents)} \n {documents}")
+        self.logger.warning(f"RETRIEVED DOCS-- \n {len(documents)} \n {documents}")
         return {"documents": documents, "question": question, "forced_generation": "NO"}
 
     def binary_classification(self, state: GraphState):

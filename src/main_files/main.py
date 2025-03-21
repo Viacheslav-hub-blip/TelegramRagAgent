@@ -6,7 +6,7 @@ from typing import List
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from src.file_reader import FileReader
-from src.graphs.simpleRag.agent import RagAgent
+from src.agents.simpleRag.agent import RagAgent
 from transformers import AutoTokenizer
 from src.langchain_model_init import model
 from src.telegram_bot.services.RetrieverService import get_or_create_retriever
