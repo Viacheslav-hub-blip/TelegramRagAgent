@@ -21,13 +21,12 @@ class LLMModelService:
         self.model = model
 
     def _get_answer(self, prompt_text, documents: List[str]) -> SummarizeContentAndDocs:
+        """Генерирует ответ модели по заданному prompt, который содержит поле element"""
         prompt = ChatPromptTemplate.from_template(prompt_text)
         summarize_chain = {"element": lambda x: x} | prompt | self.model | StrOutputParser()
         batch_size = max(int(len(documents) * 0.2), 1)
         batches_split_docs = [documents[i: i + batch_size] for i in range(0, len(documents), batch_size)]
-        retries = 0
-        max_retries = 5
-        result_text_sum = []
+        retries, max_retries, result_text_sum = 0, 5, []
         for batch in batches_split_docs:
             while retries < max_retries:
                 try:
@@ -38,15 +37,15 @@ class LLMModelService:
                     retries = 0
                     break
                 except Exception as e:
-                    print(f"Ошибка: {e}. Попытка {retries + 1} из {max_retries}")
                     retries += 1
                     delay = exponential_backoff(retries)
                     time.sleep(delay)
-            else:
-                print(f"Не удалось обработать батч: {batch}")
         return SummarizeContentAndDocs(result_text_sum, documents)
 
     def get_summarize_docs(self, documents: List[str]) -> str:
+        """Создает краткое описание для документов
+        Возвращает общее краткое содержание
+        """
         prompt_text = """    
                   Вы помощник, который должен передавать краткое содержание текста, сохраняя все важные детали.\n
                   Предоставьте краткое содержание,чтобы сохранить все важные моменты и детали.\n
@@ -64,6 +63,9 @@ class LLMModelService:
         return "".join(answer.summary_texts)
 
     def get_summarize_docs_with_questions(self, split_docs: List[str]) -> SummarizeContentAndDocs:
+        """Создает краткое описание к документам и добавлет вопросы к каждому фрагменту
+        Возвращает краткие содержания и исходные фрагменты
+        """
         prompt_text = """    
            Вы помощник, который должен передавать краткое содержание текста, сохраняя все важные детали.\n
            Предоставьте краткое содержание,чтобы сохранить все важные моменты и детали.\n
