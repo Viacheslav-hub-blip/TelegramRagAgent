@@ -43,6 +43,9 @@ class CustomMultiVecRetriever(MultiVectorRetriever):
 class RetrieverSrvice:
     @staticmethod
     def get_or_create_retriever(user_id: str):
+        """Создает векторноую базу и retriever для пользователя, если она не была найдена
+        Если такое хранилище существует, возвращает существующие хранилище
+        """
         collection_name = f"user_{user_id}"
         client = chromadb.PersistentClient(path=f"/home/alex/PycharmProjects/pythonProject/src/chroma_db_{user_id}")
         id_key = "doc_id"
@@ -64,23 +67,24 @@ class RetrieverSrvice:
             )
 
             return retriever
-        else:
-            vec_store = Chroma(
-                collection_name=collection_name,
-                embedding_function=embeddings,
-                persist_directory=f"/home/alex/PycharmProjects/pythonProject/src/chroma_db_{user_id}",
-            )
-            retriever = CustomMultiVecRetriever(
-                vectorstore=vec_store,
-                docstore=store,
-                id_key=id_key,
-                search_kwargs={"k": 5}
-            )
+        
+        vec_store = Chroma(
+            collection_name=collection_name,
+            embedding_function=embeddings,
+            persist_directory=f"/home/alex/PycharmProjects/pythonProject/src/chroma_db_{user_id}",
+        )
+        retriever = CustomMultiVecRetriever(
+            vectorstore=vec_store,
+            docstore=store,
+            id_key=id_key,
+            search_kwargs={"k": 5}
+        )
 
-            return retriever
+        return retriever
 
     @staticmethod
     def clear_retriever(user_id: str):
+        """Удаляет всю папку пользователя с фргментами текста""""
         collection_name = f"user_{user_id}"
         client = chromadb.PersistentClient(path=f"/home/alex/PycharmProjects/pythonProject/src/chroma_db_{user_id}")
         if collection_name in [name for name in client.list_collections()]:
