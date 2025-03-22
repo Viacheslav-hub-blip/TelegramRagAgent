@@ -3,6 +3,7 @@ from typing import List, NamedTuple
 from uuid import uuid4
 from langchain.schema.document import Document
 from src.file_reader import FileReader
+import chromadb
 from src.telegram_bot.services.custon_multivec_retriever import CustomMultiVecRetriever
 from src.telegram_bot.services.llm_model_service import LLMModelService, SummarizeContentAndDocs
 from src.telegram_bot.services.documents_saver_service import DocumentsSaver
@@ -73,3 +74,12 @@ class VecStoreService:
         self.retriever.vectorstore.add_documents(summarize_docs_with_ids)
         documentSaver.save_source_docs_in_files(user_id, doc_ids, source_docs)
         return self.get_documents_without_add_questions(summarize_docs_with_ids)
+
+    @staticmethod
+    def clear_vector_stores(user_id: str):
+        """Удаляет векторное хранилище пользователя""""
+        collection_name = f"user_{user_id}"
+        client = chromadb.PersistentClient(path=f"/home/alex/PycharmProjects/pythonProject/src/chroma_db_{user_id}")
+        if collection_name in [name for name in client.list_collections()]:
+            shutil.rmtree(f"/home/alex/PycharmProjects/pythonProject/src/chroma_db_{user_id}")
+            client.clear_system_cache()
