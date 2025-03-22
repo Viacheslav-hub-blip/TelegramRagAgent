@@ -82,11 +82,4 @@ class RetrieverSrvice:
 
         return retriever
 
-    @staticmethod
-    def clear_retriever(user_id: str):
-        """Удаляет векторное хранилище пользователя""""
-        collection_name = f"user_{user_id}"
-        client = chromadb.PersistentClient(path=f"/home/alex/PycharmProjects/pythonProject/src/chroma_db_{user_id}")
-        if collection_name in [name for name in client.list_collections()]:
-            shutil.rmtree(f"/home/alex/PycharmProjects/pythonProject/src/chroma_db_{user_id}")
-            client.clear_system_cache()
+   
