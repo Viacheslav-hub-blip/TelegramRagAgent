@@ -1,5 +1,4 @@
 from typing import List
-
 from transformers import AutoTokenizer
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -14,7 +13,7 @@ class TextSplitterService:
         self.chunk_overlap = chunk_overlap
 
     def create_text_splitter(self) -> RecursiveCharacterTextSplitter:
-        """Создает TextSplitter с заданными параметрами(размер фрагмента и перекрытие)""""
+        """Создает TextSplitter с заданными параметрами(размер фрагмента и перекрытие)"""
         tokenizer = AutoTokenizer.from_pretrained(self.model_id)
         text_splitter = (RecursiveCharacterTextSplitter.from_huggingface_tokenizer(
             tokenizer,

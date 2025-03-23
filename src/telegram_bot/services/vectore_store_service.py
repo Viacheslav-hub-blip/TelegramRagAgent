@@ -1,10 +1,10 @@
 import re
+import shutil
 from typing import List, NamedTuple
 from uuid import uuid4
 from langchain.schema.document import Document
-from src.file_reader import FileReader
 import chromadb
-from src.telegram_bot.services.custon_multivec_retriever import CustomMultiVecRetriever
+from src.telegram_bot.services.RetrieverService import CustomMultiVecRetriever
 from src.telegram_bot.services.llm_model_service import LLMModelService, SummarizeContentAndDocs
 from src.telegram_bot.services.documents_saver_service import DocumentsSaver
 from src.telegram_bot.services.text_splitter_service import TextSplitterService
@@ -77,7 +77,7 @@ class VecStoreService:
 
     @staticmethod
     def clear_vector_stores(user_id: str):
-        """Удаляет векторное хранилище пользователя""""
+        """Удаляет векторное хранилище пользователя"""
         collection_name = f"user_{user_id}"
         client = chromadb.PersistentClient(path=f"/home/alex/PycharmProjects/pythonProject/src/chroma_db_{user_id}")
         if collection_name in [name for name in client.list_collections()]:

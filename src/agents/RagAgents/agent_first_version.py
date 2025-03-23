@@ -354,7 +354,7 @@ class RagAgent:
 
 
 if __name__ == "__main__":
-    from src.telegram_bot.services.custon_multivec_retriever import CustomMultiVecRetriever
+    from src.telegram_bot.services.RetrieverService import CustomMultiVecRetriever
     from langchain_huggingface.embeddings import HuggingFaceEndpointEmbeddings
     from langchain_gigachat.chat_models import GigaChat
     from langchain_community.tools.tavily_search import TavilySearchResults

@@ -18,14 +18,13 @@ from src.telegram_bot.keyboards.inline_kbs import ease_link_kb, faq_kb
 from src.telegram_bot.create_bot import bot
 # SERVICES
 from src.telegram_bot.services.llm_model_service import LLMModelService
-from src.telegram_bot.services.text_splitter_service import TextSplitterService
 from src.telegram_bot.services.vectore_store_service import VecStoreService
 from src.telegram_bot.services.RetrieverService import RetrieverSrvice
 from src.telegram_bot.services.documents_saver_service import DocumentsSaver
 from src.file_reader import FileReader
 # AGENT
 from src.langchain_model_init import model
-from src.agents.simpleRag.agent import RagAgent
+from src.agents.RagAgents.agent_first_version import RagAgent
 
 os.environ["TAVILY_API_KEY"] = "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"
 os.environ["NUMBA_NUM_THREADS"] = "1"
@@ -81,7 +80,7 @@ def _invoke_agent(user_id: str, question: str) -> AgentAnswer:
     return AgentAnswer(question, generation, web_search, documents)
 
 
-def _save_summarize_doc_content(input_format: str, file_path: str, language: List[str], user_id: str) -> List[str]:
+def _get_content(input_format, language, file_path):
     file_reader = FileReader(
         input_format=input_format,
         tessdata_path="/usr/share/tesseract-ocr/5/tessdata/",
@@ -89,8 +88,15 @@ def _save_summarize_doc_content(input_format: str, file_path: str, language: Lis
         language=language,
         generate_picture_images=False
     )
+    markdown_content = file_reader.get_markdown()
+    content = file_reader.get_cleaned_content(markdown_content)
+    return content
+
+
+def _save_summarize_doc_content(input_format: str, file_path: str, language: List[str], user_id: str) -> List[str]:
+    content = _get_content(input_format, language, file_path)
     retriever = RetrieverSrvice.get_or_create_retriever(user_id)
-    vecstore_store_service = VecStoreService(file_reader, llm_model_service, retriever)
+    vecstore_store_service = VecStoreService(llm_model_service, retriever, content)
     summarize_content = vecstore_store_service.add_docs_from_reader_in_retriever()
     return summarize_content
 
@@ -157,7 +163,7 @@ async def choose_file_language(message: Message, state: FSMContext):
         await message.answer(
             "Супер! Теперь мне осталось прочитать файл, чтобы ответить на ваши вопросы. Пожалуйста, подождите\n"
             "Когда я закончу обработку, я напишу. Пока я читаю файл, вы можете продолжать задавать мне вопросы.\n\n"
-            f"Например: {some_questions_for_examples[random.randint(0, len(some_questions_for_examples)-1)]}"
+            f"Например: {some_questions_for_examples[random.randint(0, len(some_questions_for_examples) - 1)]}"
         )
         await state.set_state(LoadFile.process_file)
 

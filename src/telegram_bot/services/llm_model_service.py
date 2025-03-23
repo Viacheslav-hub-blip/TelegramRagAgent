@@ -1,6 +1,5 @@
 import time
 from typing import NamedTuple, List
-
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.language_models.chat_models import BaseChatModel

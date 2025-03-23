@@ -1,4 +1,3 @@
-import shutil
 import chromadb
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from typing import List
