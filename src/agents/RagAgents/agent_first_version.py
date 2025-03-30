@@ -1,7 +1,6 @@
 import logging
 from typing import List, TypedDict
 from langchain_core.tools import BaseTool
-from langchain import hub
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -168,7 +167,7 @@ class RagAgent:
         self.logger.info("--RETRIEVE--")
         question: str = state["question"]
         try:
-            documents: List[Document] = self.retriever.invoke(question)
+            documents: List[Document] = self.retriever.get_relevant_documents(question)
         except Exception as e:
             print('Ошибка извлечения документов', Exception, e)
             exit()
@@ -198,7 +197,7 @@ class RagAgent:
             web_search = "Yes"
             self.logger.warning("EMPTY DOCUMENTS----WEB SEARCH")
         else:
-            documents_content = "\n".join([doc[0].page_content for doc in documents])
+            documents_content = "\n".join([doc.page_content for doc in documents])
             binary_res = self._retriever_binary_answer_chain(documents_content, question)
             self.logger.warning(f"BINARY CLASSIFICASION RES {binary_res}")
             if binary_res in ["yes", "YES", "Yes", "Да", "ДА"]:
@@ -354,40 +353,30 @@ class RagAgent:
 
 
 if __name__ == "__main__":
-    from src.telegram_bot.services.RetrieverService import CustomMultiVecRetriever
-    from langchain_huggingface.embeddings import HuggingFaceEndpointEmbeddings
+    from src.telegram_bot.services.RetrieverService import CustomRetriever, embeddings
     from langchain_gigachat.chat_models import GigaChat
     from langchain_community.tools.tavily_search import TavilySearchResults
     from langchain_chroma import Chroma
-    from langchain_core.stores import InMemoryStore
     import os
     from pprint import pprint
+    from src.telegram_bot.config import *
 
     warnings.filterwarnings("ignore")
 
-    os.environ['HF_TOKEN'] = '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'
-    os.environ["TAVILY_API_KEY"] = "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"
+    os.environ['HF_TOKEN'] = HF_TOKEN
+    os.environ["TAVILY_API_KEY"] = TAVILY_API_KEY
     os.environ[
-        "GIGACHAT_API_PERS"] = "ZTk3ZjdmYjMtNmMwOC00NGE1LTk0MzktYzA3ZjU4Yzc2YWI3OmViOTBhNDZmLTAxNzktNDY4Yi04ODljLTc3ZDZhOTA0YmJjZg=="
+        "GIGACHAT_API_PERS"] = GIGACHAT_API_PERS
 
-    embeddings = HuggingFaceEndpointEmbeddings(model="mixedbread-ai/mxbai-embed-large-v1", task="feature-extraction")
     vec_store = Chroma(
         collection_name="example",
         embedding_function=embeddings,
         persist_directory="./chroma_db",
+        collection_metadata={"hnsw:space": "cosine"}
     )
-    #
-    # vec_store = InMemoryVectorStore(embedding=embeddings)
 
-    store_doc = InMemoryStore()
-    id_key = "doc_id"
-
-    retriever = CustomMultiVecRetriever(
-        vectorstore=vec_store,
-        docstore=store_doc,
-        id_key=id_key,
-        search_type="mmr",
-        search_kwargs={"k": 2}
+    retriever = CustomRetriever(
+        vec_store,
     )
 
     docs = [
@@ -419,10 +408,9 @@ if __name__ == "__main__":
 
     # uuids = [str(uuid4()) for _ in range(len(docs))]
     retriever.vectorstore.add_documents(docs)
-    retriever.docstore.mset(list(zip(["1", "2", "3"], docs)))
 
     llm = GigaChat(verify_ssl_certs=False,
-                   credentials="ZTk3ZjdmYjMtNmMwOC00NGE1LTk0MzktYzA3ZjU4Yzc2YWI3OmViOTBhNDZmLTAxNzktNDY4Yi04ODljLTc3ZDZhOTA0YmJjZg==")
+                   credentials=GIGACHAT_API_PERS)
 
     tool = TavilySearchResults(k=3)
 

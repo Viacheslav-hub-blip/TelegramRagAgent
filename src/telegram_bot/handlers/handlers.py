@@ -5,6 +5,7 @@ from pathlib import Path
 from pprint import pprint
 from typing import List, NamedTuple
 from src.telegram_bot.config import some_questions_for_examples
+from src.telegram_bot.config import TAVILY_API_KEY
 # AIOGRAM
 from aiogram import Router, F, Bot
 from aiogram.fsm.state import StatesGroup, State
@@ -23,10 +24,10 @@ from src.telegram_bot.services.RetrieverService import RetrieverSrvice
 from src.telegram_bot.services.documents_saver_service import DocumentsSaver
 from src.file_reader import FileReader
 # AGENT
-from src.langchain_model_init import model
+from src.telegram_bot.langchain_model_init import model
 from src.agents.RagAgents.agent_first_version import RagAgent
 
-os.environ["TAVILY_API_KEY"] = "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"
+os.environ["TAVILY_API_KEY"] = TAVILY_API_KEY
 os.environ["NUMBA_NUM_THREADS"] = "1"
 router = Router()
 DOWNLOAD_PATH = "/src/telegram_bot/temp_downloads"
@@ -137,7 +138,7 @@ async def _start_handler(msg: Message):
 async def clear_documents(msg: Message):
     try:
         print(str(msg.from_user.id))
-        RetrieverSrvice.clear_retriever(str(msg.from_user.id))
+        VecStoreService.clear_vector_stores(str(msg.from_user.id))
         DocumentsSaver().clear_user_directory(str(msg.from_user.id))
         await msg.answer("Все загруженные документы удалены")
     except:

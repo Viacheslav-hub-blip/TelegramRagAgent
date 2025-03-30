@@ -4,7 +4,7 @@ from typing import List, NamedTuple
 from uuid import uuid4
 from langchain.schema.document import Document
 import chromadb
-from src.telegram_bot.services.RetrieverService import CustomMultiVecRetriever
+from src.telegram_bot.services.RetrieverService import CustomRetriever
 from src.telegram_bot.services.llm_model_service import LLMModelService, SummarizeContentAndDocs
 from src.telegram_bot.services.documents_saver_service import DocumentsSaver
 from src.telegram_bot.services.text_splitter_service import TextSplitterService
@@ -21,7 +21,7 @@ class SummDocsWithIdsAndSource(NamedTuple):
 class VecStoreService:
     def __init__(self,
                  model_service: LLMModelService,
-                 retriever: CustomMultiVecRetriever,
+                 retriever: CustomRetriever,
                  content: str
                  ) -> None:
         self.model_service = model_service
@@ -41,6 +41,7 @@ class VecStoreService:
         """Добавлет metadata в документы: уникальный id документа, принадлежность к группе и позицию документа
         в группе. Сделано для дальнейшей возможности извлечения соседних документов"""
         doc_ids, docs_section = [str(uuid4()) for _ in range(len(summarized_docs))], str(uuid4())
+        print("DOC SECTION", docs_section)
         summarize_docs_with_metadata = [
             Document(
                 page_content=summary,

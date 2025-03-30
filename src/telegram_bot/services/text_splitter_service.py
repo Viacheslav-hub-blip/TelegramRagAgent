@@ -28,9 +28,9 @@ class TextSplitterService:
             return [content]
         elif 1500 < len(content) <= 6000:
             text_splitter = TextSplitterService(chunk_size=500, chunk_overlap=100).create_text_splitter()
-            cleaned_split_docs = text_splitter.split_text(content)
-            return cleaned_split_docs
+            split_docs = text_splitter.split_text(content)
+            return split_docs
         else:
             text_splitter = TextSplitterService(chunk_size=700, chunk_overlap=150).create_text_splitter()
-            cleaned_split_docs = text_splitter.split_text(content)
-            return cleaned_split_docs
+            split_docs = text_splitter.split_text(content)
+            return split_docs

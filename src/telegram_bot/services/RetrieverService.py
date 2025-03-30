@@ -1,21 +1,24 @@
 import chromadb
-from langchain_huggingface.embeddings import HuggingFaceEmbeddings
-from typing import List
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
+from langchain_core.vectorstores import VectorStore
+from langchain_huggingface.embeddings import HuggingFaceEmbeddings
+from typing import List, Any
 import os
 from langchain_core.documents import Document
 from langchain_chroma import Chroma
-from langchain.storage import InMemoryStore
-from langchain.retrievers.multi_vector import MultiVectorRetriever
+from src.telegram_bot.config import HF_TOKEN, embeddings_model_name
+from langchain_core.retrievers import BaseRetriever
 
-os.environ['HF_TOKEN'] = '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'
+os.environ['HF_TOKEN'] = HF_TOKEN
 
 embeddings = HuggingFaceEmbeddings(
-    model_name="mixedbread-ai/mxbai-embed-large-v1"
+    model_name=embeddings_model_name
 )
 
 
-class CustomMultiVecRetriever(MultiVectorRetriever):
+class CustomRetriever:
+    def __init__(self, vectorstore: VectorStore):
+        self.vectorstore = vectorstore
 
     @staticmethod
     def __get_source_docs(collection_name: str, doc_id: str) -> List[Document]:
@@ -25,18 +28,18 @@ class CustomMultiVecRetriever(MultiVectorRetriever):
             doc = Document(page_content="".join(content))
         return [doc]
 
-    def _get_relevant_documents(self, query: str, *, run_manager: CallbackManagerForRetrieverRun) \
-            -> list[tuple[Document, float]]:
-        result_search_sim_docs = self.vectorstore.similarity_search_with_score(
-            query, **self.search_kwargs
-        )
-        for result_search_sim_doc in result_search_sim_docs:
-            collection_name = self.vectorstore._collection_name
-            doc_id = result_search_sim_doc[0].metadata["doc_id"]
+    def get_relevant_documents(self, query: str) -> list[Document]:
+        result_search_sim_docs = self.vectorstore.similarity_search_with_score(query)
+        collection_name = self.vectorstore._collection_name
+        result = []
+        for result_search_sim_doc, score in result_search_sim_docs:
+            doc_id = result_search_sim_doc.metadata["doc_id"]
             source_doc = self.__get_source_docs(collection_name, doc_id)
-            result_search_sim_doc[0].metadata["source_doc"] = source_doc
-
-        return result_search_sim_docs
+            result_search_sim_doc.metadata["source_doc"] = source_doc
+            result_search_sim_doc.metadata["score"] = score
+            result.append(result_search_sim_doc)
+        print("result search result")
+        return result
 
 
 class RetrieverSrvice:
@@ -47,38 +50,26 @@ class RetrieverSrvice:
         """
         collection_name = f"user_{user_id}"
         client = chromadb.PersistentClient(path=f"/home/alex/PycharmProjects/pythonProject/src/chroma_db_{user_id}")
-        id_key = "doc_id"
-        store = InMemoryStore()
         if collection_name in [name for name in client.list_collections()]:
             collection = client.get_collection(collection_name)
-
             vec_store = Chroma(
                 collection_name=collection.name,
                 embedding_function=embeddings,
-                client=client
+                client=client,
+                collection_metadata={"hnsw:space": "cosine"}
             )
-
-            retriever = CustomMultiVecRetriever(
+            retriever = CustomRetriever(
                 vectorstore=vec_store,
-                docstore=store,
-                id_key=id_key,
-                search_kwargs={"k": 5}
             )
-
             return retriever
-        
+
         vec_store = Chroma(
             collection_name=collection_name,
             embedding_function=embeddings,
             persist_directory=f"/home/alex/PycharmProjects/pythonProject/src/chroma_db_{user_id}",
+            collection_metadata={"hnsw:space": "cosine"}
         )
-        retriever = CustomMultiVecRetriever(
+        retriever = CustomRetriever(
             vectorstore=vec_store,
-            docstore=store,
-            id_key=id_key,
-            search_kwargs={"k": 5}
         )
-
         return retriever
-
-   

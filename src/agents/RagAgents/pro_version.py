@@ -140,4 +140,5 @@ class RagAgent:
         return {"question_with_additions": question_with_additions}
 
     def retrieve_documents(self, state: GraphState):
-        searched_documents = self.retriever.invoke({"question": state["question"]})
+        searched_documents: List[Document] = self.retriever.get_relevant_documents(state["question"])
+

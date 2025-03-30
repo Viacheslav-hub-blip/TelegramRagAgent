@@ -1,5 +1,13 @@
 BOT_TOKEN = "7461678358:AAGGiKU2Ig3w9bTFTzpgc5CyEFyilxQwMTI"
 
+HF_TOKEN = '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'
+
+embeddings_model_name  = "cointegrated/LaBSE-en-ru"
+
+GIGACHAT_API_PERS= "ZTk3ZjdmYjMtNmMwOC00NGE1LTk0MzktYzA3ZjU4Yzc2YWI3OmViOTBhNDZmLTAxNzktNDY4Yi04ODljLTc3ZDZhOTA0YmJjZg=="
+
+TAVILY_API_KEY = "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"
+
 some_questions_for_examples = [
     'Кто является царем олимпийских богов в греческой мифологии?',
     'Продолжением какой могущественной древней империи была Византийская империя?',

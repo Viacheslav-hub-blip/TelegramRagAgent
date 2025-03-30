@@ -8,7 +8,7 @@ from langchain.schema.document import Document
 from src.file_reader import FileReader
 from src.agents.simpleRag.agent import RagAgent
 from transformers import AutoTokenizer
-from src.langchain_model_init import model
+from src.telegram_bot.langchain_model_init import model
 from src.telegram_bot.services.RetrieverService import get_or_create_retriever
 from langchain_community.tools.tavily_search import TavilySearchResults
 
