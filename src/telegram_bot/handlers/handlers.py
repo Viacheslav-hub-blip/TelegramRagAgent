@@ -98,7 +98,7 @@ def _save_summarize_doc_content(input_format: str, file_path: str, language: Lis
     content = _get_content(input_format, language, file_path)
     retriever = RetrieverSrvice.get_or_create_retriever(user_id)
     vecstore_store_service = VecStoreService(llm_model_service, retriever, content)
-    summarize_content = vecstore_store_service.add_docs_from_reader_in_retriever()
+    summarize_content = vecstore_store_service.save_docs_and_add_in_retriever()
     return summarize_content
 
 

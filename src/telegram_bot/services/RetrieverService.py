@@ -21,9 +21,10 @@ class CustomRetriever:
         self.vectorstore = vectorstore
 
     @staticmethod
-    def __get_source_docs(collection_name: str, doc_id: str) -> List[Document]:
-        with open(rf"/home/alex/PycharmProjects/pythonProject/src/users_directory/{collection_name}/{doc_id}.txt",
-                  'r') as f:
+    def __get_source_docs(collection_name: str, doc_id: str, belongs_to: str, doc_number: str) -> List[Document]:
+        with open(
+                rf"/home/alex/PycharmProjects/pythonProject/src/users_directory/{collection_name}/{doc_id}/{belongs_to}/{doc_number}.txt",
+                'r') as f:
             content = f.readlines()
             doc = Document(page_content="".join(content))
         return [doc]
@@ -34,7 +35,9 @@ class CustomRetriever:
         result = []
         for result_search_sim_doc, score in result_search_sim_docs:
             doc_id = result_search_sim_doc.metadata["doc_id"]
-            source_doc = self.__get_source_docs(collection_name, doc_id)
+            belongs_to = result_search_sim_doc.metadata["belongs_to"]
+            doc_number = result_search_sim_doc.metadata["doc_number"]
+            source_doc = self.__get_source_docs(collection_name, doc_id, belongs_to, doc_number)
             result_search_sim_doc.metadata["source_doc"] = source_doc
             result_search_sim_doc.metadata["score"] = score
             result.append(result_search_sim_doc)

@@ -52,7 +52,7 @@ if __name__ == '__main__':
     retriever = get_or_create_retriever(user_id)
     llm_model_service = LLMModelService(model)
     vecstore_store_creator = VecStoreService(file_reader, text_splitter, llm_model_service, retriever, additional_docs)
-    summary = vecstore_store_creator.add_docs_from_reader_in_retriever()
+    summary = vecstore_store_creator.save_docs_and_add_in_retriever()
 
     tool = TavilySearchResults(k=3)
     rag_agent = RagAgent(model=model, retriever=retriever, web_search_tool=tool)

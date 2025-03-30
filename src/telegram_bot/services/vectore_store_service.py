@@ -12,10 +12,10 @@ from src.telegram_bot.services.text_splitter_service import TextSplitterService
 documentSaver = DocumentsSaver()
 
 
-class SummDocsWithIdsAndSource(NamedTuple):
+class SummDocsWithSourceAndIds(NamedTuple):
     summarize_docs_with_ids: List[Document]
     doc_ids: List[str]
-    source_docs: List[str]
+    source_docs: List[Document]
 
 
 class VecStoreService:
@@ -37,36 +37,45 @@ class VecStoreService:
             return SummarizeContentAndDocs([self.model_service.get_summarize_docs(split_docs)], split_docs)
         return self.model_service.get_summarize_docs_with_questions(split_docs)
 
-    def _add_metadata_in_docs(self, summarized_docs: list[str]) -> (list[Document], list[str]):
-        """Добавлет metadata в документы: уникальный id документа, принадлежность к группе и позицию документа
+    def _add_metadata_in_summary_docs(self, doc_ids, docs_section, summarized_docs: list[Document]) -> list[Document]:
+        """Добавлет metadata в сжатые документы: уникальный id документа, принадлежность к группе и позицию документа
         в группе. Сделано для дальнейшей возможности извлечения соседних документов"""
-        doc_ids, docs_section = [str(uuid4()) for _ in range(len(summarized_docs))], str(uuid4())
-        print("DOC SECTION", docs_section)
         summarize_docs_with_metadata = [
-            Document(
-                page_content=summary,
-                metadata={"doc_id": doc_ids[i], "belongs_to": docs_section, "doc_number": i}) for i, summary in
-            enumerate(summarized_docs)
+            Document(page_content=doc.page_content,
+                     metadata={"doc_id": doc_ids[i], "belongs_to": docs_section, "doc_number": i})
+            for i, doc in enumerate(summarized_docs)
         ]
-        return summarize_docs_with_metadata, doc_ids
+        return summarize_docs_with_metadata
 
-    def _get_summary_doc_with_metadata(self) -> SummDocsWithIdsAndSource:
+    def _add_metadata_in_source_docs(self, doc_ids, docs_section, source_docs: list[str]) -> list[Document]:
+        """Добавлет metadata в исходные документы: уникальный id документа, принадлежность к группе и позицию документа
+        в группе. Сделано для дальнейшей возможности извлечения соседних документов"""
+        source_docs_with_metadata = [
+            Document(page_content=source, metadata={"doc_id": doc_ids[i], "belongs_to": docs_section, "doc_number": i})
+            for i, source in enumerate(source_docs)
+        ]
+        return source_docs_with_metadata
+
+    def _get_summary_doc_with_metadata(self) -> SummDocsWithSourceAndIds:
         """Возвращает сжатые документы с дополнительными данными, id документов
         и исходные документы
         """
         source_split_documents: list[str] = TextSplitterService.get_split_documents(self.content)
-        summarized_docs: SummarizeContentAndDocs = self._get_summary_doc_content(source_split_documents)
-        docs_with_metadata, doc_ids = self._add_metadata_in_docs(summarized_docs.summary_texts)
-        return SummDocsWithIdsAndSource(docs_with_metadata, doc_ids, source_split_documents)
+        summarized_docs: list[Document] = [Document(doc.summary_texts) for doc in
+                                           self._get_summary_doc_content(source_split_documents)]
+        doc_ids, docs_section = [str(uuid4()) for _ in range(len(summarized_docs))], str(uuid4())
+
+        summarized_docs_with_metadata = self._add_metadata_in_summary_docs(doc_ids, docs_section, summarized_docs)
+        source_docs_with_metadata = self._add_metadata_in_source_docs(doc_ids, docs_section, source_split_documents)
+        return SummDocsWithSourceAndIds(summarized_docs_with_metadata, doc_ids, source_docs_with_metadata)
 
     def get_documents_without_add_questions(self, documents: list[Document]) -> list[str]:
         """Удаляет из сжатых текстов дополнительные вопросы, которые были добавлены перед векторизацией"""
         documents_without_questions = [re.sub(r'Вопросы:.*?(?=\n\n|\Z)', '', summ.page_content, flags=re.DOTALL)
-                                       for summ in
-                                       documents]
+                                       for summ in documents]
         return documents_without_questions
 
-    def add_docs_from_reader_in_retriever(self) -> List[str]:
+    def save_docs_and_add_in_retriever(self) -> List[str]:
         """Добавлет документы в векторную базу и возвращает
         краткое содержание без дополнитльно созданных вопросов
         """
