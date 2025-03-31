@@ -1,14 +1,10 @@
-import logging
-from typing import List, TypedDict, Literal
+from typing import List, TypedDict
 from langchain_core.tools import BaseTool
-from langchain import hub
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
 from langchain_core.documents import Document
-from langgraph.graph import StateGraph, START, END
-import warnings
+from src.telegram_bot.services.documents_getter_service import DocumentsGetterService
 
 
 class GraphState(TypedDict):
@@ -22,9 +18,11 @@ class GraphState(TypedDict):
         documents: list of documents
     """
     question: str
+    user_id: str
     question_category: str
     question_with_additions: str
     retrieved_documents: List[Document]
+    neighboring_docs: List[Document]
 
 
 class RagAgent:
@@ -153,15 +151,24 @@ class RagAgent:
         return res_dict
 
     def retrieve_documents(self, state: GraphState):
+        """Ищет документы и ограничивает выборку документами со сходством <= 1.3(наиболее релевантные)"""
         searched_documents: List[Document] = self.retriever.get_relevant_documents(state["question"])
+        searched_documents = [doc for doc in searched_documents if doc.metadata["score"] <= 1.3]
         return {"retrieved_documents": searched_documents}
 
-    def retrieve_neighboring_docs(self, state: GraphState):
+    def get_neighboring_docs(self, state: GraphState):
+        """Ищет соседние исходные документы к тем, что были надйены при посике с помощью retriever"""
         section_numbers_dict = {}
         for doc in state["retrieved_documents"]:
             if doc.metadata["belongs_to"] in section_numbers_dict:
                 section_numbers_dict[doc.metadata["belongs_to"]] += f'/{doc.metadata["doc_number"]}'
             else:
                 section_numbers_dict[doc.metadata["belongs_to"]] = doc.metadata["doc_number"]
-
-        neighboring_docs_numbers = self.get_neighboring_numbers_doc(section_numbers_dict)
+        neighboring_docs_numbers: dict = self.get_neighboring_numbers_doc(section_numbers_dict)
+        neighboring_docs: list[Document] = []
+        for sec, v in neighboring_docs_numbers:
+            doc_nums = v.split("/")
+            for num in doc_nums:
+                document = DocumentsGetterService.get_document_by_user_id_section_and_number(state["user_id"], sec, num)
+                neighboring_docs.append(document)
+        return {"neighboring_docs": neighboring_docs}
