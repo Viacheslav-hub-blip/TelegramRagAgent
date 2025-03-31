@@ -60,9 +60,9 @@ class VecStoreService:
         """Возвращает сжатые документы с дополнительными данными, id документов
         и исходные документы
         """
-        source_split_documents: list[str] = TextSplitterService.get_split_documents(self.content)
-        summarized_docs: list[Document] = [Document(doc.summary_texts) for doc in
-                                           self._get_summary_doc_content(source_split_documents)]
+        source_split_documents: list[str] = TextSplitterService.get_semantic_split_documents(self.content)
+        summarized_docs: list[Document] = [Document(page_content=sum) for sum in
+                                           self._get_summary_doc_content(source_split_documents).summary_texts]
         doc_ids, docs_section = [str(uuid4()) for _ in range(len(summarized_docs))], str(uuid4())
 
         summarized_docs_with_metadata = self._add_metadata_in_summary_docs(doc_ids, docs_section, summarized_docs)

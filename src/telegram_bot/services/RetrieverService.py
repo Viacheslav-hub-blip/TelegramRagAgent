@@ -1,33 +1,14 @@
 import chromadb
-from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.vectorstores import VectorStore
-from langchain_huggingface.embeddings import HuggingFaceEmbeddings
-from typing import List, Any
-import os
 from langchain_core.documents import Document
 from langchain_chroma import Chroma
-from src.telegram_bot.config import HF_TOKEN, embeddings_model_name
-from langchain_core.retrievers import BaseRetriever
-
-os.environ['HF_TOKEN'] = HF_TOKEN
-
-embeddings = HuggingFaceEmbeddings(
-    model_name=embeddings_model_name
-)
+from src.telegram_bot.embedding import embeddings
+from src.telegram_bot.services.documents_getter_service import DocumentsGetterService
 
 
 class CustomRetriever:
     def __init__(self, vectorstore: VectorStore):
         self.vectorstore = vectorstore
-
-    @staticmethod
-    def __get_source_docs(collection_name: str, doc_id: str, belongs_to: str, doc_number: str) -> List[Document]:
-        with open(
-                rf"/home/alex/PycharmProjects/pythonProject/src/users_directory/{collection_name}/{doc_id}/{belongs_to}/{doc_number}.txt",
-                'r') as f:
-            content = f.readlines()
-            doc = Document(page_content="".join(content))
-        return [doc]
 
     def get_relevant_documents(self, query: str) -> list[Document]:
         result_search_sim_docs = self.vectorstore.similarity_search_with_score(query)
@@ -37,11 +18,11 @@ class CustomRetriever:
             doc_id = result_search_sim_doc.metadata["doc_id"]
             belongs_to = result_search_sim_doc.metadata["belongs_to"]
             doc_number = result_search_sim_doc.metadata["doc_number"]
-            source_doc = self.__get_source_docs(collection_name, doc_id, belongs_to, doc_number)
-            result_search_sim_doc.metadata["source_doc"] = source_doc
             result_search_sim_doc.metadata["score"] = score
+            source_doc = DocumentsGetterService.get_source_document(collection_name, doc_id, belongs_to, doc_number)
+            result_search_sim_doc.metadata["source_doc"] = source_doc.page_content
             result.append(result_search_sim_doc)
-        print("result search result")
+        print("result search result", result)
         return result
 
 

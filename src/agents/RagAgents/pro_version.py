@@ -24,6 +24,7 @@ class GraphState(TypedDict):
     question: str
     question_category: str
     question_with_additions: str
+    retrieved_documents: List[Document]
 
 
 class RagAgent:
@@ -139,6 +140,28 @@ class RagAgent:
         question_with_additions: str = self.opinion_query_chain(state["question"])
         return {"question_with_additions": question_with_additions}
 
+    def get_neighboring_numbers_doc(self, section_numbers_dict: dict) -> dict:
+        """Получает словарь, где ключ - раздел документа, значение - номера документов в разделе
+        Возвращает словарь, где к номерам документов добавляютс соседние номера кажого документа
+        """
+        res_dict = {}
+        for sec, numbers in section_numbers_dict.items():
+            numbers_int: list[int] = [int(s) for s in numbers.split("/")]
+            neighboring_numbers: list[int] = numbers_int.extend([n + 1 for n in numbers_int])
+            unique_neighboring_numbers = sorted(set(neighboring_numbers))
+            res_dict[sec] = "/".join([str(i) for i in unique_neighboring_numbers])
+        return res_dict
+
     def retrieve_documents(self, state: GraphState):
         searched_documents: List[Document] = self.retriever.get_relevant_documents(state["question"])
+        return {"retrieved_documents": searched_documents}
 
+    def retrieve_neighboring_docs(self, state: GraphState):
+        section_numbers_dict = {}
+        for doc in state["retrieved_documents"]:
+            if doc.metadata["belongs_to"] in section_numbers_dict:
+                section_numbers_dict[doc.metadata["belongs_to"]] += f'/{doc.metadata["doc_number"]}'
+            else:
+                section_numbers_dict[doc.metadata["belongs_to"]] = doc.metadata["doc_number"]
+
+        neighboring_docs_numbers = self.get_neighboring_numbers_doc(section_numbers_dict)

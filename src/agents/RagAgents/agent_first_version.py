@@ -299,7 +299,7 @@ class RagAgent:
             documents_content = "\n".join([doc.page_content for doc in documents])
         else:
             documents = state["documents"]
-            documents_content = "\n".join([doc[0].page_content for doc in documents])
+            documents_content = "\n".join([doc.metadata["source_doc"] for doc in documents])
         self.logger.warning(f"--FINAL DOCS-- {documents}")
 
         generation = self._rag_answer_chain(documents_content, question)

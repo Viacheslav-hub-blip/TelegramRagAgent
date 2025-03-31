@@ -9,15 +9,21 @@ class DocumentsSaver:
     def __create_user_directory(user_id: str) -> None:
         os.makedirs(f'/home/alex/PycharmProjects/pythonProject/src/users_directory/user_{user_id}', exist_ok=True)
 
+    @staticmethod
+    def __create_document_section(user_id: str, document_section: str) -> None:
+        os.makedirs(f'/home/alex/PycharmProjects/pythonProject/src/users_directory/user_{user_id}/{document_section}',
+                    exist_ok=True)
+
     def save_source_docs_in_files(self, user_id: str, docs_id: List[str], documents: List[Document]) -> None:
         """Сохраняет документы в папку пользовател под их id"""
         self.__create_user_directory(user_id)
         for doc_id, document in zip(docs_id, documents):
             document_section = document.metadata["belongs_to"]
             document_position = document.metadata["doc_number"]
-            path = f'/home/alex/PycharmProjects/pythonProject/src/users_directory/user_{user_id}/{doc_id}/{document_section}/{document_position}.txt'
+            self.__create_document_section(user_id, document_section)
+            path = f'/home/alex/PycharmProjects/pythonProject/src/users_directory/user_{user_id}/{document_section}/{doc_id}_{document_position}.txt'
             with open(path, 'w') as file:
-                file.write(document)
+                file.write(document.page_content)
 
     def clear_user_directory(self, user_id: str) -> None:
         """Удаляет папку с фрагментами документов"""
