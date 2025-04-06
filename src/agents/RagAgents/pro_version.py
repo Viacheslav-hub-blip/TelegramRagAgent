@@ -4,7 +4,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
-from langgraph.constants import START
+from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 
 from src.telegram_bot.services.documents_getter_service import DocumentsGetterService
@@ -31,11 +31,11 @@ class GraphState(TypedDict):
 
 
 class RagAgent:
-    def __init__(self, model: BaseChatModel, retriever, web_search_tool: BaseTool):
+    def __init__(self, model: BaseChatModel, retriever):
         self.model = model
         self.retriever = retriever
-        self.web_search_tool = web_search_tool
         self.state = GraphState
+        self.app = self.compile_graph()
 
     def simple_chain(self, system_prompt: str, question: str) -> str:
         prompt = ChatPromptTemplate.from_messages(
@@ -49,7 +49,7 @@ class RagAgent:
 
     def analyze_query_for_category_chain(self, question: str) -> str:
         system_prompt = """
-                Ты умный ассистент, который разделяет запрс пользователя на 3 категории:\n
+                Ты умный ассистент, который разделяет запрос пользователя на 3 категории для улучшения поиска документов в базе:\n
                 1.Фактическая - если в вопросе спрашивают про какие либо факты, либо если они должны содержаться в ответе\n
                 2.Аналитическая  - если для ответа на вопрос нужно провести цепочку рассуждений \n
                 3.Мнение - если в вопросе спрашивают твое (языковой модели) мнение или просят порассуждать\n
@@ -85,7 +85,8 @@ class RagAgent:
         system_prompt = """
                     Вы умный помощник, который помогает улучшить или дполнить вопрос пользователя для дальнейшего\n
                     извлечения информации по этому вопросу\n
-                    Ваша задача: Улучшите этот фактологический запрос для лучшего поиска информации\n
+                    Ваша задача: Улучшите этот фактологический запрос дополнительными вопросами для лучшего поиска информации. В качестве ответа предоставьте только улучшенный запрос.\n
+                    НЕ используй вступительный слова по типу: Улучшенный запрос, новый запрос и т.д
                     Вопрос пользователя: {question}
                 """
         return self.simple_chain(system_prompt, question)
@@ -95,6 +96,7 @@ class RagAgent:
         В этом случае генерируются дполнительные воросы
         """
         question_with_additions: str = self.factual_query_chain(state["question"])
+        print("----factual strategy------", question_with_additions)
         return {"question_with_additions": question_with_additions}
 
     def analytical_query_chain(self, question: str) -> str:
@@ -126,6 +128,7 @@ class RagAgent:
         Для такого вопроса генерируются уточняющие вопросы
         """
         question_with_additions: str = self.analytical_query_chain(state["question"])
+        print("----analytical strategy------", question_with_additions)
         return {"question_with_additions": question_with_additions}
 
     def opinion_query_chain(self, question: str) -> str:
@@ -141,7 +144,15 @@ class RagAgent:
         Для такого вопроса генерируются уточняющие вопросы
         """
         question_with_additions: str = self.opinion_query_chain(state["question"])
+        print("----opinion strategy------", question_with_additions)
         return {"question_with_additions": question_with_additions}
+
+    def retrieve_documents(self, state: GraphState):
+        """Ищет документы и ограничивает выборку документами со сходством <= 1.3(наиболее релевантные)"""
+        searched_documents: List[Document] = self.retriever.get_relevant_documents(state["question_with_additions"])
+        searched_documents = [doc for doc in searched_documents if doc.metadata["score"] <= 1.3]
+        print("------retrieve_documents------", searched_documents)
+        return {"retrieved_documents": searched_documents}
 
     def get_neighboring_numbers_doc(self, section_numbers_dict: dict) -> dict:
         """Получает словарь, где ключ - раздел документа, значение - номера документов в разделе
@@ -150,16 +161,14 @@ class RagAgent:
         res_dict = {}
         for sec, numbers in section_numbers_dict.items():
             numbers_int: list[int] = [int(s) for s in numbers.split("/")]
-            neighboring_numbers: list[int] = numbers_int.extend([n + 1 for n in numbers_int])
+            print("numbers_int", numbers_int)
+            neighboring_numbers: list[int] = numbers_int + [n + 1 for n in numbers_int]
+            print("neighboring_numbers", neighboring_numbers)
             unique_neighboring_numbers = sorted(set(neighboring_numbers))
+            print("unique_neighboring_numbers", unique_neighboring_numbers)
             res_dict[sec] = "/".join([str(i) for i in unique_neighboring_numbers])
+        print("res_dict", res_dict)
         return res_dict
-
-    def retrieve_documents(self, state: GraphState):
-        """Ищет документы и ограничивает выборку документами со сходством <= 1.3(наиболее релевантные)"""
-        searched_documents: List[Document] = self.retriever.get_relevant_documents(state["question"])
-        searched_documents = [doc for doc in searched_documents if doc.metadata["score"] <= 1.3]
-        return {"retrieved_documents": searched_documents}
 
     def get_neighboring_docs(self, state: GraphState):
         """Ищет соседние исходные документы к тем, что были надйены при посике с помощью retriever"""
@@ -168,22 +177,27 @@ class RagAgent:
             if doc.metadata["belongs_to"] in section_numbers_dict:
                 section_numbers_dict[doc.metadata["belongs_to"]] += f'/{doc.metadata["doc_number"]}'
             else:
-                section_numbers_dict[doc.metadata["belongs_to"]] = doc.metadata["doc_number"]
+                section_numbers_dict[doc.metadata["belongs_to"]] = str(doc.metadata["doc_number"])
         neighboring_docs_numbers: dict = self.get_neighboring_numbers_doc(section_numbers_dict)
+        print("neighboring_docs_numbers", neighboring_docs_numbers)
         neighboring_docs: list[Document] = []
-        for sec, v in neighboring_docs_numbers:
+        for sec, v in neighboring_docs_numbers.items():
             doc_nums = v.split("/")
             for num in doc_nums:
                 document = DocumentsGetterService.get_document_by_user_id_section_and_number(state["user_id"], sec, num)
                 neighboring_docs.append(document)
+        print("count docs", len(neighboring_docs))
+        print("------get_neighboring_docs------", neighboring_docs)
         return {"neighboring_docs": neighboring_docs}
 
     def checking_possibility_responses_chain(self, question: str, context: str):
         """Просим модель проверить, можно ли дать ответ на вопрос по найденным документам"""
         prompt = """
         Ты - умный помощник, который должен определить, можно ли ответить на вопрос пользователя по найденному контексту.
-        Если по найденному контексту можно дать ответ, напиши "ДА". Если по найденному конкесту нельзя дать правильный ответ,
-        то ответь "НЕТ".
+        Проанализируй весь полученный контекст, выясни, есть ли в контексте ключевые слова из вопроса, подходит ли контекст к вопросу по семантике и смыслу.
+        Всеми силами попробуй дать ответ на вопрос пользователя по найденному контексту.
+        Если по найденному контексту можно дать ответ на вопрос пользователя или контекст содержит ключевые слова которые есть в вопросе или похож по семантике, напиши "ДА". 
+        Если по найденному конкесту нельзя дать ответ на вопрос пользователя, то ответь "НЕТ".Отвечать "НЕТ" необходимо только в том случае, когда контекст полностью не соотвествует вопросу.
         Не используй другие слова в ответе.
         
         Вопрос пользователя:{question}
@@ -204,7 +218,7 @@ class RagAgent:
         """Получает результат оценки возможности ответа на вопрос по контексту"""
         doc_context = "".join([doc.page_content for doc in state["neighboring_docs"]])
         binary_check = self.checking_possibility_responses_chain(state["question"], doc_context)
-
+        print("------checking_possibility_responses------", binary_check)
         if binary_check.lower() in ["yes", "да"]:
             return "да"
         else:
@@ -216,9 +230,10 @@ class RagAgent:
         Инстуркции:
         Внимательно прочитай контекст и вопрос.
         Ответ должен быть:
-        -Кратким и по делу (если не указано иное).
+        -Ракрытым, содержащим полную информацию, но без добавения информации,которая не относится к вопросу.
         -Основанным только на контексте (не добавляй внешних знаний).
         -Структурированным (используй списки, абзацы, выделение ключевых моментов при необходимости).
+        -Используй переносы строк, когда выделяешь новый абзац.
         
         Вопрос: {question}
         
@@ -235,6 +250,7 @@ class RagAgent:
     def generate_answer_with_retrieve_context(self, state: GraphState):
         doc_context = "".join([doc.page_content for doc in state["neighboring_docs"]])
         answer = self.answer_with_context_chain(state["question"], doc_context)
+        print("------generate_answer_with_retrieve_context------", answer)
         return {"answer_with_retrieve": answer}
 
     def answer_without_context_chain(self, question: str):
@@ -255,16 +271,19 @@ class RagAgent:
         chain = system_prompt | self.model | StrOutputParser()
         return chain.invoke({"question": question})
 
+    def answer_without_context(self, state: GraphState):
+        answer = self.answer_without_context_chain(state["question"])
+        print("------answer_without_context------", answer)
+        return {"answer": answer}
+
     def check_answer_for_correctness_chain(self, retrieve_answer: str, own_known_answer: str, question: str):
         prompt = """
                     Ты — интеллектуальный ассистент, который:
                     Анализирует ответ, сгенерированный на основе предоставленных документов (контекста).                    
-                    Сверяет его со своими знаниями, чтобы исправить неточности, дополнить пробелы или уточнить детали.                    
-                    Формирует итоговый ответ, объединяющий проверенную информацию из контекста и релевантные данные из своих знаний (если это улучшает ответ).
                                         
                     Instructions:
                     Входные данные:                    
-                    Ответ из контекста: {retrieve_answer}      
+                    CONTEXT: {retrieve_answer}      
                     Ответ на основе собственных знаний: {own_known_answer}              
                     Вопрос пользователя: {question}         
                                
@@ -275,15 +294,17 @@ class RagAgent:
                                        
                     Шаг 2. Коррекция:                    
                     Если в ответе из контекста есть ошибки → замени их корректными данными.                    
-                    Если информации недостаточно → дополни ответ только релевантными и проверенными фактами (без домыслов!).    
-                                    
-                    Шаг 3. Объединение:                    
-                    Создай итоговый ответ, сохраняя структуру и стиль исходного ответа, но делая его точным и полным.   
+                    Если информация ошибочная → дополни ответ только релевантными и проверенными фактами (без домыслов!).  
+                    Если информации в контексте достатоточно → не добавляй ничего, напиши исходный ответ из контекста.
+                    Если в тексте есть специальные символы,которые используют языковые модели,например ** → удали их.
+                    
+                    Шаг 3.
+                    Если исходный CONTEXT отвечает на вопрос,не добавляй ничего
                                      
                     Важно:                    
                     Приоритет контекста: Если данные из контекста не противоречат твоим знаниям, оставь их без изменений.                    
-                    Минимум дополнений: Добавляй внешние знания только тогда, когда это критично для точности или полноты.                    
-                    Прозрачность: Если вносишь исправления, кратко поясни их в сноске (например: «Уточнено по данным ООН, 2023»).
+                    Минимум дополнений: Добавляй внешние знания только тогда, когда это критично для точности или полноты. Если ответ соотвествует вопросу, то НЕ ДОБАВЛЯЙ НИЧЕГО.                   
+                    В качестве ответа напиши только итоговый ответ без описания всех предыдищх шагов
                     """
 
         system_prompt = ChatPromptTemplate.from_messages(
@@ -296,10 +317,16 @@ class RagAgent:
         return chain.invoke(
             {"retrieve_answer": retrieve_answer, "own_known_answer": own_known_answer, "question": question})
 
+    def _delete_special_symbols(self, answer: str) -> str:
+        answer = answer.replace("**", "")
+        return answer
+
     def check_answer_for_correctness(self, state: GraphState):
         retrieve_answer = state["answer_with_retrieve"]
         own_known_answer = self.answer_without_context_chain(state["question"])
         final_answer = self.check_answer_for_correctness_chain(retrieve_answer, own_known_answer, state["question"])
+        final_answer = self._delete_special_symbols(final_answer)
+        print("------check_answer_for_correctness------", final_answer)
         return {"answer": final_answer}
 
     def compile_graph(self):
@@ -310,9 +337,112 @@ class RagAgent:
         workflow.add_node("opinion_query_strategy", self.opinion_query_strategy)
         workflow.add_node("retrieve_documents", self.retrieve_documents)
         workflow.add_node("get_neighboring_docs", self.get_neighboring_docs)
+        workflow.add_node("answer_without_context", self.answer_without_context)
         workflow.add_node("generate_answer_with_retrieve_context", self.generate_answer_with_retrieve_context)
         workflow.add_node("check_answer_for_correctness", self.check_answer_for_correctness)
 
         workflow.add_edge(START, "analyze_query_for_category")
-        workflow.add_edge(START, "analyze_query_for_category")
+        workflow.add_conditional_edges(
+            "analyze_query_for_category",
+            self.choose_query_strategy,
+            {
+                "Factual": "factual_query_strategy",
+                "Analytical": "analytical_query_strategy",
+                "Opinion": "opinion_query_strategy",
+            }
+        )
 
+        workflow.add_edge("factual_query_strategy", "retrieve_documents")
+        workflow.add_edge("analytical_query_strategy", "retrieve_documents")
+        workflow.add_edge("opinion_query_strategy", "retrieve_documents")
+
+        workflow.add_edge("retrieve_documents", "get_neighboring_docs")
+
+        workflow.add_conditional_edges(
+            "get_neighboring_docs",
+            self.checking_possibility_responses,
+            {
+                "да": "generate_answer_with_retrieve_context",
+                "нет": "answer_without_context"
+            }
+        )
+
+        workflow.add_edge("generate_answer_with_retrieve_context", "check_answer_for_correctness")
+        workflow.add_edge("check_answer_for_correctness", END)
+
+        workflow.add_edge("answer_without_context", END)
+
+        return workflow.compile()
+
+    def __call__(self, *args, **kwargs):
+        return self.app
+
+
+if __name__ == "__main__":
+    from src.telegram_bot.services.RetrieverService import CustomRetriever, embeddings
+    from src.telegram_bot.langchain_model_init import model
+    from langchain_chroma import Chroma
+    from pprint import pprint
+
+    vec_store = Chroma(
+        collection_name="example_pro",
+        embedding_function=embeddings,
+        persist_directory="./chroma_db",
+        collection_metadata={"hnsw:space": "cosine"}
+    )
+
+    retriever = CustomRetriever(
+        vec_store,
+    )
+
+    docs = [
+        Document(
+            page_content="I had chocolate chip pancakes and scrambled eggs for breakfast this morning.",
+            metadata={"source": "tweet", "doc_id": "1"},
+            id=1,
+        ),
+        Document(
+            page_content="Slava Rylkov this is a young developer who is 20 years old. He lives in Moscow, studies at the university. SLava is interested in programming and language models.",
+            metadata={"source": "tweet", "doc_id": "2"},
+            id=2,
+        ),
+        Document(
+            page_content="The weather forecast for tomorrow is cloudy and overcast, with a high of 62 degrees.",
+            metadata={"source": "news", "doc_id": "3"},
+            id=3),
+        Document(
+            page_content="The latest of  SLava project was the development of a financial platform and the creation of a smart assistant.",
+            metadata={"source": "tweet", "doc_id": "4"},
+            id=4,
+        ),
+        Document(
+            page_content="Слава Рыльков - молодой разработчик, ему 20 лет. Он живет в Москве, учится в университете. Слава интересуется программированием и языковыми моделями.",
+            metadata={"source": "tweet", "doc_id": "5"},
+            id=5,
+        ),
+    ]
+    retriever.vectorstore.add_documents(docs)
+
+    agent = RagAgent(model, retriever)
+
+    while True:
+        input_question = input("Введите сообщение: ")
+
+        if input_question != "q":
+            inputs = {"question": input_question}
+            result = agent().invoke(inputs)
+            print(result, result["forced_generation"])
+            question, generation, web_search, forced_generation = result["question"], result["generation"], result[
+                "web_search"], result["forced_generation"]
+            try:
+                documents: List[Document] = result["documents"]
+            except:
+                documents = []
+
+            print("##QUESTION## ", question)
+            print("##ANSWER## ", generation)
+            print("##WEB_SERACH## ", web_search)
+            pprint(documents)
+            print()
+        else:
+            exit()

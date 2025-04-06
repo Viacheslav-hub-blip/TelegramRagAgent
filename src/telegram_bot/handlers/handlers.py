@@ -25,7 +25,7 @@ from src.telegram_bot.services.documents_saver_service import DocumentsSaver
 from src.file_reader import FileReader
 # AGENT
 from src.telegram_bot.langchain_model_init import model
-from src.agents.RagAgents.agent_first_version import RagAgent
+from src.agents.RagAgents.pro_version import RagAgent
 
 os.environ["TAVILY_API_KEY"] = TAVILY_API_KEY
 os.environ["NUMBA_NUM_THREADS"] = "1"
@@ -58,27 +58,26 @@ def _collect_source_links(source_docs: list, max_links: int = 2) -> list:
 
 
 def _format_answer(answer: AgentAnswer) -> str:
-    if answer.web_search not in ['No', 'Нет', 'Нет', 'NO']:
+    if answer not in ['No', 'Нет', 'Нет', 'NO']:
         links = "\n".join(_collect_source_links(answer.source_docs))
         res_ans = (
             f"Мой ответ:\n{answer.generation}\n"
-            f"Для ответа я использовал интернет ресурсы:\n\n"
-            f"{links}")
+        )
         return res_ans
     return f"{answer.generation}"
 
 
 def _invoke_agent(user_id: str, question: str) -> AgentAnswer:
     retriever = RetrieverSrvice.get_or_create_retriever(user_id)
-    rag_agent = RagAgent(model=model, retriever=retriever, web_search_tool=tool)
-    result = rag_agent().invoke({"question": question})
-    question, generation, web_search = result["question"], result["generation"], result["web_search"]
+    rag_agent = RagAgent(model=model, retriever=retriever)
+    result = rag_agent().invoke({"question": question, "user_id": user_id})
+    question, generation = result["question"], result["answer"]
     try:
         documents = result["documents"]
         pprint(result["documents"])
     except:
         documents = []
-    return AgentAnswer(question, generation, web_search, documents)
+    return AgentAnswer(question, generation, "", documents)
 
 
 def _get_content(input_format, language, file_path):
@@ -94,7 +93,7 @@ def _get_content(input_format, language, file_path):
     return content
 
 
-def _save_summarize_doc_content(input_format: str, file_path: str, language: List[str], user_id: str) -> List[str]:
+def _save_summarize_doc_content(input_format: str, file_path: str, language: List[str], user_id: str) -> str:
     content = _get_content(input_format, language, file_path)
     retriever = RetrieverSrvice.get_or_create_retriever(user_id)
     vecstore_store_service = VecStoreService(llm_model_service, retriever, content)
@@ -176,7 +175,7 @@ async def choose_file_language(message: Message, state: FSMContext):
                                             data.get("file_path"),
                                             [data.get("language")],
                                             str(message.from_user.id))
-        await message.answer("".join(result)[:4000])
+        await message.answer(result)
         await state.clear()
     else:
         await message.answer("Я пока не поддерживаю этот язык")

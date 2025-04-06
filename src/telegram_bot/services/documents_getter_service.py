@@ -18,7 +18,7 @@ class DocumentsGetterService:
         files = os.listdir(f"/home/alex/PycharmProjects/pythonProject/src/users_directory/user_{user_id}/{section}")
         for name in files:
             if name.split("_")[1].replace(".txt", "") == doc_number:
-                with open(rf"/home/alex/PycharmProjects/pythonProject/src/users_directory/{user_id}/{section}/{name}",
+                with open(rf"/home/alex/PycharmProjects/pythonProject/src/users_directory/user_{user_id}/{section}/{name}",
                           'r') as f:
                     content = f.readlines()
                     doc = Document(page_content="".join(content))
