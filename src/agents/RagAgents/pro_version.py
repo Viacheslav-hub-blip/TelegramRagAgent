@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import List, TypedDict, Optional
 from langchain_core.tools import BaseTool
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
@@ -21,6 +21,7 @@ class GraphState(TypedDict):
         documents: list of documents
     """
     question: str
+    file_metadata_name: str
     user_id: str
     question_category: str
     question_with_additions: str
@@ -152,6 +153,9 @@ class RagAgent:
         """Ищет документы и ограничивает выборку документами со сходством <= 1.3(наиболее релевантные)"""
         retrieved_documents: List[Document] = self.retriever.get_relevant_documents(state["question_with_additions"])
         retrieved_documents = [doc for doc in retrieved_documents if doc.metadata["score"] <= 1.3]
+
+
+
         for d in retrieved_documents:
             print(d)
         print("------retrieve_documents------", retrieved_documents)

@@ -11,6 +11,13 @@ def ease_link_kb():
     return InlineKeyboardMarkup(inline_keyboard=inline_kb_list)
 
 
+def choose_file_for_search_kb():
+    inline_kb_list = [
+        [InlineKeyboardButton(text="Выбрать файл", callback_data="choose_file_for_search")],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=inline_kb_list)
+
+
 def faq_kb():
     inline_kb_list = [
         [InlineKeyboardButton(text='О нас', callback_data='faq')]
