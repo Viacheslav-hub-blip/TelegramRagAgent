@@ -4,6 +4,8 @@ from langchain_core.documents import Document
 from langchain_chroma import Chroma
 from src.telegram_bot.embedding import embeddings
 from src.telegram_bot.services.documents_getter_service import DocumentsGetterService
+from langchain_community.retrievers import BM25Retriever
+from langchain.retrievers import EnsembleRetriever
 
 
 class CustomRetriever:
@@ -12,6 +14,7 @@ class CustomRetriever:
 
     def get_relevant_documents(self, query: str) -> list[Document]:
         result_search_sim_docs = self.vectorstore.similarity_search_with_score(query)
+        print(result_search_sim_docs)
         collection_name = self.vectorstore._collection_name
         result = []
         for result_search_sim_doc, score in result_search_sim_docs:
@@ -22,11 +25,14 @@ class CustomRetriever:
             source_doc = DocumentsGetterService.get_source_document(collection_name, doc_id, belongs_to, doc_number)
             result_search_sim_doc.metadata["source_doc"] = source_doc.page_content
             result.append(result_search_sim_doc)
+        for r in result:
+            print(r.metadata["score"], r.metadata["source_doc"])
         print("result search result", result)
         return result
 
 
 class RetrieverSrvice:
+
     @staticmethod
     def get_or_create_retriever(user_id: str):
         """Создает векторноую базу и retriever для пользователя, если она не была найдена
@@ -40,7 +46,8 @@ class RetrieverSrvice:
                 collection_name=collection.name,
                 embedding_function=embeddings,
                 client=client,
-                collection_metadata={"hnsw:space": "cosine"}
+                collection_metadata={"hnsw:space": "cosine"},
+
             )
             retriever = CustomRetriever(
                 vectorstore=vec_store,

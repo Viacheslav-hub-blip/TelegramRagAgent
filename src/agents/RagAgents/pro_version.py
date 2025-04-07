@@ -28,6 +28,7 @@ class GraphState(TypedDict):
     neighboring_docs: List[Document]
     answer_with_retrieve: str
     answer: str
+    used_docs: List[str]
 
 
 class RagAgent:
@@ -149,10 +150,12 @@ class RagAgent:
 
     def retrieve_documents(self, state: GraphState):
         """Ищет документы и ограничивает выборку документами со сходством <= 1.3(наиболее релевантные)"""
-        searched_documents: List[Document] = self.retriever.get_relevant_documents(state["question_with_additions"])
-        searched_documents = [doc for doc in searched_documents if doc.metadata["score"] <= 1.3]
-        print("------retrieve_documents------", searched_documents)
-        return {"retrieved_documents": searched_documents}
+        retrieved_documents: List[Document] = self.retriever.get_relevant_documents(state["question_with_additions"])
+        retrieved_documents = [doc for doc in retrieved_documents if doc.metadata["score"] <= 1.3]
+        for d in retrieved_documents:
+            print(d)
+        print("------retrieve_documents------", retrieved_documents)
+        return {"retrieved_documents": retrieved_documents}
 
     def get_neighboring_numbers_doc(self, section_numbers_dict: dict) -> dict:
         """Получает словарь, где ключ - раздел документа, значение - номера документов в разделе
@@ -181,8 +184,8 @@ class RagAgent:
         neighboring_docs_numbers: dict = self.get_neighboring_numbers_doc(section_numbers_dict)
         print("neighboring_docs_numbers", neighboring_docs_numbers)
         neighboring_docs: list[Document] = []
-        for sec, v in neighboring_docs_numbers.items():
-            doc_nums = v.split("/")
+        for sec, numbers in neighboring_docs_numbers.items():
+            doc_nums = numbers.split("/")
             for num in doc_nums:
                 document = DocumentsGetterService.get_document_by_user_id_section_and_number(state["user_id"], sec, num)
                 neighboring_docs.append(document)
@@ -226,18 +229,30 @@ class RagAgent:
 
     def answer_with_context_chain(self, question: str, context: str):
         prompt = """
-        Ты — интеллектуальный ассистент, который анализирует предоставленный контекст и формулирует точный, информативный ответ на вопрос пользователя.        
-        Инстуркции:
-        Внимательно прочитай контекст и вопрос.
-        Ответ должен быть:
-        -Ракрытым, содержащим полную информацию, но без добавения информации,которая не относится к вопросу.
-        -Основанным только на контексте (не добавляй внешних знаний).
-        -Структурированным (используй списки, абзацы, выделение ключевых моментов при необходимости).
-        -Используй переносы строк, когда выделяешь новый абзац.
+        Ты — интеллектуальный ассистент, который анализирует предоставленный контекст и формулирует точный, информативный ответ на вопрос пользователя.\n
+        Инстуркции:\n
+        Внимательно прочитай контекст и вопрос.\n
         
-        Вопрос: {question}
+        Ответ должен быть:\n
+        -Ракрытым, грамотнымсодержащим полную информацию, но без добавения информации,которая не относится к вопросу.\n
+        -Каждый ответ должен быть точным, правдимым и отвечать на вопрос пользователя\n
+        -Основанным только на контексте (не добавляй внешних знаний).\n
+        -Структурированным (используй списки, абзацы, выделение ключевых моментов при необходимости).\n
+        -Используй переносы строк, когда выделяешь новый абзац.\n
         
-        Найденный контекст: {context}
+        Для этого тебе стоит:\n
+        -Рассуждать шаг за шагом\n
+        -Продумывать свои ответы и действия\n
+        -Проверять правильность построения предложений\n
+        -Использовать разные части речи\n
+        
+        
+        Вопрос: {question}\n
+        
+        Найденный контекст: {context}\n
+        
+        Важно: проверь правильность всех фактов, которые пишешь. Проверь имена действующих лиц и соотвествие твоего ответа реальности.
+        Не описывай все предыщие шаги о размышлениях в ответе. Дай только ответ
         """
         system_prompt = ChatPromptTemplate.from_messages(
             [
@@ -278,33 +293,34 @@ class RagAgent:
 
     def check_answer_for_correctness_chain(self, retrieve_answer: str, own_known_answer: str, question: str):
         prompt = """
-                    Ты — интеллектуальный ассистент, который:
-                    Анализирует ответ, сгенерированный на основе предоставленных документов (контекста).                    
+                    Ты — интеллектуальный ассистент, который:\n
+                    Анализирует ответ, сгенерированный на основе предоставленных документов (контекста). \n
                                         
-                    Instructions:
-                    Входные данные:                    
-                    CONTEXT: {retrieve_answer}      
-                    Ответ на основе собственных знаний: {own_known_answer}              
-                    Вопрос пользователя: {question}         
+                    Instructions:\n
+                    Входные данные:\n
+                    RETRIEVED_ANSWER: {retrieve_answer}\n
+                    OWN_KNOWN_ANSWER: {own_known_answer}\n
+                    Вопрос пользователя: {question}\n
                                
-                    Алгоритм работы:                            
-                    Шаг 1. Проверка точности:                    
-                    Сравни ответ из контекста со своими знаниями.                    
-                    Выяви ошибки (например: неверные даты, искаженные факты) и пробелы (упущенные ключевые детали). 
+                    Алгоритм работы:\n
+                    Шаг 1. Проверка точности:\n
+                    Сравни RETRIEVED_ANSWER со OWN_KNOWN_ANSWER.\n
+                    Выяви ошибки (например: неверные даты, искаженные факты) и пробелы (упущенные ключевые детали).\n
                                        
-                    Шаг 2. Коррекция:                    
-                    Если в ответе из контекста есть ошибки → замени их корректными данными.                    
-                    Если информация ошибочная → дополни ответ только релевантными и проверенными фактами (без домыслов!).  
-                    Если информации в контексте достатоточно → не добавляй ничего, напиши исходный ответ из контекста.
-                    Если в тексте есть специальные символы,которые используют языковые модели,например ** → удали их.
+                    Шаг 2. Коррекция:\n
+                    Если в RETRIEVED_ANSWER есть ошибки → замени их корректными данными.\n
+                    Если в RETRIEVED_ANSWER есть специальные символы,которые используют языковые модели,например ** → удали их.\n
                     
-                    Шаг 3.
-                    Если исходный CONTEXT отвечает на вопрос,не добавляй ничего
+                    Шаг 3.\n
+                    Если RETRIEVED_ANSWER отвечает на вопрос,не добавляй ничего\n
+                    
+                    Шаг4 4.\n
+                    Обьедени RETRIEVED_ANSWER с OWN_KNOWN_ANSWER, если это необходимо. Если нет необходимости, оставь только RETRIEVED_ANSWER\n
                                      
-                    Важно:                    
-                    Приоритет контекста: Если данные из контекста не противоречат твоим знаниям, оставь их без изменений.                    
-                    Минимум дополнений: Добавляй внешние знания только тогда, когда это критично для точности или полноты. Если ответ соотвествует вопросу, то НЕ ДОБАВЛЯЙ НИЧЕГО.                   
-                    В качестве ответа напиши только итоговый ответ без описания всех предыдищх шагов
+                    Важно:\n
+                    Приоритет контекста: Если RETRIEVED_ANSWER не противоречат OWN_KNOWN_ANSWER, оставь их без изменений.\n
+                    Минимум дополнений: Добавляй OWN_KNOWN_ANSWER только тогда, когда это критично для точности или полноты. Если RETRIEVED_ANSWER соотвествует вопросу, то НЕ ДОБАВЛЯЙ НИЧЕГО.\n
+                    В качестве ответа напиши только итоговый ответ без описания всех предыдищх шагов\n
                     """
 
         system_prompt = ChatPromptTemplate.from_messages(
@@ -323,11 +339,17 @@ class RagAgent:
 
     def check_answer_for_correctness(self, state: GraphState):
         retrieve_answer = state["answer_with_retrieve"]
-        own_known_answer = self.answer_without_context_chain(state["question"])
-        final_answer = self.check_answer_for_correctness_chain(retrieve_answer, own_known_answer, state["question"])
-        final_answer = self._delete_special_symbols(final_answer)
+        # own_known_answer = self.answer_without_context_chain(state["question"])
+        # final_answer = self.check_answer_for_correctness_chain(retrieve_answer, own_known_answer, state["question"])
+        final_answer = self._delete_special_symbols(retrieve_answer)
         print("------check_answer_for_correctness------", final_answer)
         return {"answer": final_answer}
+
+    def add_source_docs_names(self, state: GraphState):
+        documents: list[Document] = state["retrieved_documents"]
+        file_ids_names = DocumentsGetterService.get_files_ids_names(state["user_id"])
+        used_docs_names = list(set([file_ids_names.get(doc.metadata["belongs_to"]) for doc in documents]))
+        return {"used_docs": used_docs_names}
 
     def compile_graph(self):
         workflow = StateGraph(self.state)
@@ -340,6 +362,7 @@ class RagAgent:
         workflow.add_node("answer_without_context", self.answer_without_context)
         workflow.add_node("generate_answer_with_retrieve_context", self.generate_answer_with_retrieve_context)
         workflow.add_node("check_answer_for_correctness", self.check_answer_for_correctness)
+        workflow.add_node("add_source_docs_names", self.add_source_docs_names)
 
         workflow.add_edge(START, "analyze_query_for_category")
         workflow.add_conditional_edges(
@@ -368,7 +391,8 @@ class RagAgent:
         )
 
         workflow.add_edge("generate_answer_with_retrieve_context", "check_answer_for_correctness")
-        workflow.add_edge("check_answer_for_correctness", END)
+        workflow.add_edge("check_answer_for_correctness", "add_source_docs_names")
+        workflow.add_edge("add_source_docs_names", END)
 
         workflow.add_edge("answer_without_context", END)
 

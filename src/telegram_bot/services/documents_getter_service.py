@@ -18,9 +18,18 @@ class DocumentsGetterService:
         files = os.listdir(f"/home/alex/PycharmProjects/pythonProject/src/users_directory/user_{user_id}/{section}")
         for name in files:
             if name.split("_")[1].replace(".txt", "") == doc_number:
-                with open(rf"/home/alex/PycharmProjects/pythonProject/src/users_directory/user_{user_id}/{section}/{name}",
-                          'r') as f:
+                with open(
+                        rf"/home/alex/PycharmProjects/pythonProject/src/users_directory/user_{user_id}/{section}/{name}",
+                        'r') as f:
                     content = f.readlines()
                     doc = Document(page_content="".join(content))
                     return doc
         return Document(page_content="")
+
+    @staticmethod
+    def get_files_ids_names(user_id: str) -> dict:
+        path = f'/home/alex/PycharmProjects/pythonProject/src/users_directory/user_{user_id}/user_{user_id}_files'
+        with open(path, 'r') as f:
+            content = f.readlines()
+        ids_names = {id: name for id, name in [c.split("::") for c in content]}
+        return ids_names

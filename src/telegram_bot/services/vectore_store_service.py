@@ -9,8 +9,6 @@ from src.telegram_bot.services.llm_model_service import LLMModelService, Summari
 from src.telegram_bot.services.documents_saver_service import DocumentsSaver
 from src.telegram_bot.services.text_splitter_service import TextSplitterService
 
-documentSaver = DocumentsSaver()
-
 
 class SummDocsWithSourceAndIds(NamedTuple):
     summarize_docs_with_ids: List[Document]
@@ -22,11 +20,13 @@ class VecStoreService:
     def __init__(self,
                  model_service: LLMModelService,
                  retriever: CustomRetriever,
-                 content: str
+                 content: str,
+                 file_name: str
                  ) -> None:
         self.model_service = model_service
         self.retriever = retriever
         self.content = content
+        self.file_name = file_name
 
     def _get_summary_doc_content(self, split_docs: List[str]) -> SummarizeContentAndDocs:
         """Создает сжатые документы из полных фрагментов
@@ -87,7 +87,8 @@ class VecStoreService:
         summarize_docs_with_ids, doc_ids, source_docs = self._get_summary_doc_with_metadata()
         user_id = self.retriever.vectorstore._collection_name[5:]
         self.retriever.vectorstore.add_documents(summarize_docs_with_ids)
-        documentSaver.save_source_docs_in_files(user_id, doc_ids, source_docs)
+        DocumentsSaver.save_source_docs_ids_names_in_files(user_id, doc_ids, source_docs)
+        DocumentsSaver.add_file_id_with_name_in_file(user_id, source_docs[0].metadata["belongs_to"], self.file_name)
         return self.super_brief_content(summarize_docs_with_ids)
 
     @staticmethod

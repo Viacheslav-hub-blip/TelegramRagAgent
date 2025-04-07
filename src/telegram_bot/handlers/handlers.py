@@ -41,11 +41,13 @@ class AgentAnswer(NamedTuple):
     generation: str
     web_search: str
     source_docs: list
+    source_docs_names:list
 
 
 class LoadFile(StatesGroup):
     file_path = State()
     language = State()
+    file_name = State()
     process_file = State()
 
 
@@ -59,9 +61,12 @@ def _collect_source_links(source_docs: list, max_links: int = 2) -> list:
 
 def _format_answer(answer: AgentAnswer) -> str:
     if answer not in ['No', 'Нет', 'Нет', 'NO']:
-        links = "\n".join(_collect_source_links(answer.source_docs))
+        print(answer.source_docs_names)
+        names = "".join(answer.source_docs_names)
         res_ans = (
-            f"Мой ответ:\n{answer.generation}\n"
+            f"Мой ответ:\n{answer.generation}\n\n"
+            f"Для поиска я использовал документы:\n"
+            f"{names}"
         )
         return res_ans
     return f"{answer.generation}"
@@ -71,13 +76,14 @@ def _invoke_agent(user_id: str, question: str) -> AgentAnswer:
     retriever = RetrieverSrvice.get_or_create_retriever(user_id)
     rag_agent = RagAgent(model=model, retriever=retriever)
     result = rag_agent().invoke({"question": question, "user_id": user_id})
-    question, generation = result["question"], result["answer"]
+    question, generation, used_docs_names = result["question"], result["answer"], result["used_docs"]
     try:
         documents = result["documents"]
         pprint(result["documents"])
     except:
         documents = []
-    return AgentAnswer(question, generation, "", documents)
+
+    return AgentAnswer(question, generation, "", documents, used_docs_names)
 
 
 def _get_content(input_format, language, file_path):
@@ -93,10 +99,10 @@ def _get_content(input_format, language, file_path):
     return content
 
 
-def _save_summarize_doc_content(input_format: str, file_path: str, language: List[str], user_id: str) -> str:
+def _save_summarize_doc_content(input_format: str, file_path: str, language: List[str], user_id: str, file_name: str) -> str:
     content = _get_content(input_format, language, file_path)
     retriever = RetrieverSrvice.get_or_create_retriever(user_id)
-    vecstore_store_service = VecStoreService(llm_model_service, retriever, content)
+    vecstore_store_service = VecStoreService(llm_model_service, retriever, content, file_name)
     summarize_content = vecstore_store_service.save_docs_and_add_in_retriever()
     return summarize_content
 
@@ -138,7 +144,8 @@ async def clear_documents(msg: Message):
     try:
         print(str(msg.from_user.id))
         VecStoreService.clear_vector_stores(str(msg.from_user.id))
-        DocumentsSaver().clear_user_directory(str(msg.from_user.id))
+        DocumentsSaver.clear_user_directory(str(msg.from_user.id))
+        DocumentsSaver.delete_file_with_files_ids_names(str(msg.from_user.id))
         await msg.answer("Все загруженные документы удалены")
     except:
         await msg.answer("По некоторым причинам мне сейчас не удалось удалить все документы")
@@ -150,6 +157,7 @@ async def handle_file(message: Message, state: FSMContext):
         file_id = message.document.file_id
         res_destination = await _save_file(file_id)
         await state.update_data(file_path=res_destination)
+        await state.update_data(file_name=message.document.file_name)
         await state.set_state(LoadFile.language)
         await message.answer(f"Выберите язык фаила. На данный момент я поддерживаю:\neng\nrus")
     else:
@@ -174,7 +182,8 @@ async def choose_file_language(message: Message, state: FSMContext):
                                             'pdf',
                                             data.get("file_path"),
                                             [data.get("language")],
-                                            str(message.from_user.id))
+                                            str(message.from_user.id),
+                                            data.get("file_name"))
         await message.answer(result)
         await state.clear()
     else:
