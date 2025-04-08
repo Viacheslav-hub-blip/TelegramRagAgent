@@ -31,5 +31,5 @@ class DocumentsGetterService:
         path = f'/home/alex/PycharmProjects/pythonProject/src/users_directory/user_{user_id}/user_{user_id}_files'
         with open(path, 'r') as f:
             content = f.readlines()
-        ids_names = {id: name for id, name in [c.split("::") for c in content]}
+        ids_names = {id: name.rstrip() for id, name in [c.split("::") for c in content]}
         return ids_names

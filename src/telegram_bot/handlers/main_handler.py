@@ -26,42 +26,56 @@ DOWNLOAD_PATH = "/src/telegram_bot/temp_downloads"
 class AgentAnswer(NamedTuple):
     question: str
     generation: str
-    web_search: str
-    source_docs: list
     source_docs_names: list
+    answer_without_retrieve: bool
+    file_metadata_id: str
 
 
 class ChooseFileForSearch(StatesGroup):
     possible_files_names = State()
     select_file_names = State()
-    selected_name  = State()
+    file_was_selected = State()
+    selected_name = State()
 
 
 def _format_answer(answer: AgentAnswer) -> str:
-    if answer not in ['No', 'Нет', 'Нет', 'NO']:
-        print(answer.source_docs_names)
-        names = "".join(answer.source_docs_names)
+    names = "\n".join(answer.source_docs_names)
+    if answer.answer_without_retrieve:
         res_ans = (
-            f"Мой ответ:\n{answer.generation}\n\n"
+            f"{answer.generation}\n\n"
+            f"Мне не удалось найти ответ на этот вопрос в документах"
+        )
+        return res_ans
+    else:
+        if answer.file_metadata_id:
+            res_ans = (
+                f"{answer.generation}\n\n"
+                f"Поиск был в установленном документе:\n"
+                f"{names}"
+            )
+            return res_ans
+
+        res_ans = (
+            f"{answer.generation}\n\n"
             f"Для поиска я использовал документы:\n"
             f"{names}"
         )
         return res_ans
-    return f"{answer.generation}"
 
 
-def _invoke_agent(user_id: str, question: str, file_metadata_name: str) -> AgentAnswer:
+def _invoke_agent(user_id: str, question: str, file_metadata_id: str = None) -> AgentAnswer:
     retriever = RetrieverSrvice.get_or_create_retriever(user_id)
     rag_agent = RagAgent(model=model, retriever=retriever)
-    result = rag_agent().invoke({"question": question, "user_id": user_id})
-    question, generation, used_docs_names = result["question"], result["answer"], result["used_docs"]
-    try:
-        documents = result["documents"]
-        pprint(result["documents"])
-    except:
-        documents = []
+    result = rag_agent().invoke({"question": question, "user_id": user_id, "file_metadata_id": file_metadata_id})
+    question, generation, = result["question"], result["answer"]
 
-    return AgentAnswer(question, generation, "", documents, used_docs_names)
+    answer_without_retrieve = result["answer_without_retrieve"]
+    if answer_without_retrieve:
+        used_docs_names = []
+    else:
+        used_docs_names = result["used_docs"]
+    print('file metadata id', file_metadata_id)
+    return AgentAnswer(question, generation, used_docs_names, answer_without_retrieve, file_metadata_id)
 
 
 def get_old_users_ids() -> List[str]:
@@ -99,8 +113,9 @@ async def faq_handler(callback: CallbackQuery):
 async def choose_file_for_search(callback: CallbackQuery, state: FSMContext):
     all_files_ids_names = DocumentsGetterService.get_files_ids_names(str(callback.from_user.id))
     names = '\n'.join([name for id, name in all_files_ids_names.items()])
-    await callback.message.answer(f"Введите название одного файла из загруженных:\n"
-                                  f"{names}")
+    await callback.message.answer(f"💡Введите название одного файла из загруженных:\n"
+                                  f"{names}\n\n"
+                                  f"✨или напишите 'искать во всех'")
     await state.update_data(possible_files_names=names)
     await state.set_state(ChooseFileForSearch.select_file_names)
 
@@ -109,27 +124,49 @@ async def choose_file_for_search(callback: CallbackQuery, state: FSMContext):
 async def select_file_name_for_search(msg: Message, state: FSMContext):
     possible_names = await state.get_data()
     possible_names = possible_names.get("possible_files_names")
-
-    if msg.text in possible_names:
+    msg_text = msg.text.lower().strip()
+    if msg_text in possible_names:
+        await state.set_state(ChooseFileForSearch.file_was_selected)
         await state.update_data(selected_name=msg.text)
         await msg.answer(f"Выбран файл для поиска: {msg.text}")
+    elif msg_text == 'искать во всех':
+        await state.clear()
+        await msg.answer(f"Поиск по всем файлам включен📖")
     else:
-        await msg.answer("Не могу найти такой файл, попробуйте еще раз")
+        await msg.answer("Не могу найти такой файл, попробуйте еще раз😔")
+
+
+async def _get_file_for_search_id(msg: Message, state: FSMContext) -> str | None:
+    file_for_search = await state.get_data()
+    file_for_search_name = file_for_search.get("selected_name")
+    file_for_search_id = None
+    if file_for_search_name:
+        file_for_search_id = [k for k, v in DocumentsGetterService.get_files_ids_names(str(msg.from_user.id)).items() if
+                              v == file_for_search_name][0]
+    return file_for_search_id
+
+
+async def _exist_loaded_docs(msg: Message) -> Message:
+    exist_loaded_docs = DocumentsSaver.check_exist_user_directory(str(msg.from_user.id))
+    if exist_loaded_docs:
+        send_message = await msg.answer(f"Пожалуйста, подождите, я печатаю.\n"
+                                        f"Кстати, у вас есть загруженные документы\n"
+                                        f"🗑Если вы хотите их удалить, напишите '/clear_documents'")
+    else:
+        send_message = await msg.answer(f"Пожалуйста, подождите, я печатаю✍")
+    return send_message
 
 
 @router.message()
 async def any_message_handler(msg: Message, state: FSMContext):
-    exist_loaded_docs = DocumentsSaver.check_exist_user_directory(str(msg.from_user.id))
-    file_for_search = await state.get_data()
-    file_for_search = file_for_search.get("selected_name")
-    if exist_loaded_docs:
-        send_message = await msg.answer(f"Пожалуйста, подождите, я печатаю.\n"
-                                        f"Кстати, у вас есть загруженные документы\n"
-                                        f"Если вы хотите их удалить, напишите '/clear_documents'")
+    send_message: Message = await _exist_loaded_docs(msg)
+    print("current state", await state.get_state())
+    if await state.get_state() == 'ChooseFileForSearch:file_was_selected':
+        file_for_search_id = await _get_file_for_search_id(msg, state)
+        answer = _invoke_agent(str(msg.from_user.id), msg.text, file_for_search_id)
     else:
-        send_message = await msg.answer(f"Пожалуйста, подождите, я печатаю")
+        answer = _invoke_agent(str(msg.from_user.id), msg.text)
 
-    answer = _invoke_agent(str(msg.from_user.id), msg.text, file_for_search)
     format_ans = _format_answer(answer)
     await bot.delete_message(chat_id=msg.chat.id, message_id=send_message.message_id)
     await msg.answer(format_ans, reply_markup=choose_file_for_search_kb())

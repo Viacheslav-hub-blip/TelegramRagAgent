@@ -86,7 +86,7 @@ async def choose_file_language(message: Message, state: FSMContext):
     if message.text.lower() in ["eng", "rus"]:
         await state.update_data(language=message.text.lower())
         await message.answer(
-            "Супер! Теперь мне осталось прочитать файл, чтобы ответить на ваши вопросы. Пожалуйста, подождите\n"
+            "Супер! Теперь мне осталось прочитать файл, чтобы ответить на ваши вопросы. Пожалуйста, подождите, это может занять несколько минут\n"
             "Когда я закончу обработку, я напишу. Пока я читаю файл, вы можете продолжать задавать мне вопросы.\n\n"
             f"Например: {some_questions_for_examples[random.randint(0, len(some_questions_for_examples) - 1)]}"
         )
@@ -109,11 +109,8 @@ async def choose_file_language(message: Message, state: FSMContext):
 
 @router.message(Command("clear_documents"))
 async def clear_documents(msg: Message):
-    try:
-        print(str(msg.from_user.id))
-        VecStoreService.clear_vector_stores(str(msg.from_user.id))
-        DocumentsSaver.clear_user_directory(str(msg.from_user.id))
-        DocumentsSaver.delete_file_with_files_ids_names(str(msg.from_user.id))
-        await msg.answer("Все загруженные документы удалены")
-    except:
-        await msg.answer("По некоторым причинам мне сейчас не удалось удалить все документы")
+    print(str(msg.from_user.id))
+    VecStoreService.clear_vector_stores(str(msg.from_user.id))
+    DocumentsSaver.delete_file_with_files_ids_names(str(msg.from_user.id))
+    DocumentsSaver.clear_user_directory(str(msg.from_user.id))
+    await msg.answer("Все загруженные документы удалены")

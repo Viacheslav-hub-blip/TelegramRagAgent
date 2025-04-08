@@ -1,4 +1,6 @@
 from typing import List, TypedDict, Optional
+
+from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 from langchain_core.tools import BaseTool
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
@@ -21,7 +23,7 @@ class GraphState(TypedDict):
         documents: list of documents
     """
     question: str
-    file_metadata_name: str
+    file_metadata_id: str
     user_id: str
     question_category: str
     question_with_additions: str
@@ -29,6 +31,7 @@ class GraphState(TypedDict):
     neighboring_docs: List[Document]
     answer_with_retrieve: str
     answer: str
+    answer_without_retrieve: bool
     used_docs: List[str]
 
 
@@ -151,11 +154,8 @@ class RagAgent:
 
     def retrieve_documents(self, state: GraphState):
         """Ищет документы и ограничивает выборку документами со сходством <= 1.3(наиболее релевантные)"""
-        retrieved_documents: List[Document] = self.retriever.get_relevant_documents(state["question_with_additions"])
-        retrieved_documents = [doc for doc in retrieved_documents if doc.metadata["score"] <= 1.3]
-
-
-
+        retrieved_documents: List[Document] = self.retriever.get_relevant_documents(state["question_with_additions"],
+                                                                                    state["file_metadata_id"])
         for d in retrieved_documents:
             print(d)
         print("------retrieve_documents------", retrieved_documents)
@@ -238,11 +238,9 @@ class RagAgent:
         Внимательно прочитай контекст и вопрос.\n
         
         Ответ должен быть:\n
-        -Ракрытым, грамотнымсодержащим полную информацию, но без добавения информации,которая не относится к вопросу.\n
+        -Ракрытым, грамотным и содержащим полную информацию\n
         -Каждый ответ должен быть точным, правдимым и отвечать на вопрос пользователя\n
         -Основанным только на контексте (не добавляй внешних знаний).\n
-        -Структурированным (используй списки, абзацы, выделение ключевых моментов при необходимости).\n
-        -Используй переносы строк, когда выделяешь новый абзац.\n
         
         Для этого тебе стоит:\n
         -Рассуждать шаг за шагом\n
@@ -263,7 +261,8 @@ class RagAgent:
                 ("system", prompt)
             ]
         )
-        chain = system_prompt | self.model | StrOutputParser()
+        chain = system_prompt | RunnablePassthrough(
+            lambda x: print('Final prompt:\n', x)) | self.model | StrOutputParser()
         return chain.invoke({"question": question, "context": context})
 
     def generate_answer_with_retrieve_context(self, state: GraphState):
@@ -293,37 +292,50 @@ class RagAgent:
     def answer_without_context(self, state: GraphState):
         answer = self.answer_without_context_chain(state["question"])
         print("------answer_without_context------", answer)
-        return {"answer": answer}
+        return {"answer_without_retrieve": True, "answer": answer}
 
-    def check_answer_for_correctness_chain(self, retrieve_answer: str, own_known_answer: str, question: str):
+    def check_answer_for_correctness_chain(self, retrieve_answer: str, question: str):
         prompt = """
-                    Ты — интеллектуальный ассистент, который:\n
-                    Анализирует ответ, сгенерированный на основе предоставленных документов (контекста). \n
-                                        
-                    Instructions:\n
-                    Входные данные:\n
-                    RETRIEVED_ANSWER: {retrieve_answer}\n
-                    OWN_KNOWN_ANSWER: {own_known_answer}\n
-                    Вопрос пользователя: {question}\n
-                               
-                    Алгоритм работы:\n
-                    Шаг 1. Проверка точности:\n
-                    Сравни RETRIEVED_ANSWER со OWN_KNOWN_ANSWER.\n
-                    Выяви ошибки (например: неверные даты, искаженные факты) и пробелы (упущенные ключевые детали).\n
-                                       
-                    Шаг 2. Коррекция:\n
-                    Если в RETRIEVED_ANSWER есть ошибки → замени их корректными данными.\n
-                    Если в RETRIEVED_ANSWER есть специальные символы,которые используют языковые модели,например ** → удали их.\n
+                   Ты - эксперт-редактор, проверяющий ответы, сгенерированные на основе найденных документов. Твоя задача - тщательно анализировать предоставленный ответ в контексте исходного вопроса пользователя и имеющихся данных, затем либо подтверждать его корректность, либо вносить необходимые исправления.
+
+                    Алгоритм работы:
+                    1. Внимательно проанализируй вопрос пользователя и предоставленный ответ
+                    2. Проверь ответ по следующим критериям:
+                       - Соответствие вопросу
+                       - Фактическая точность (все утверждения должны быть подтверждены документами)
+                       - Логическая целостность (отсутствие противоречий в ответе)
+                       - Полнота (ответ должен охватывать ключевые аспекты вопроса)
+                       - Ясность изложения (информация должна быть понятной и структурированной)
                     
-                    Шаг 3.\n
-                    Если RETRIEVED_ANSWER отвечает на вопрос,не добавляй ничего\n
+                    3. Если ответ полностью удовлетворяет всем критериям:
+                       - Верни исходный текст без изменений
                     
-                    Шаг4 4.\n
-                    Обьедени RETRIEVED_ANSWER с OWN_KNOWN_ANSWER, если это необходимо. Если нет необходимости, оставь только RETRIEVED_ANSWER\n
-                                     
-                    Важно:\n
-                    Приоритет контекста: Если RETRIEVED_ANSWER не противоречат OWN_KNOWN_ANSWER, оставь их без изменений.\n
-                    Минимум дополнений: Добавляй OWN_KNOWN_ANSWER только тогда, когда это критично для точности или полноты. Если RETRIEVED_ANSWER соотвествует вопросу, то НЕ ДОБАВЛЯЙ НИЧЕГО.\n
+                    4. Если найдены ошибки или неточности:
+                       - Предоставь исправленную версию ответа
+                       - Сохрани исходный смысл, но сделай текст более точным и соответствующим вопросу
+                    
+                    5. Особое внимание удели:
+                        -Названиям,именам,действующим лицам и персонажам
+                       - Недопущению галлюцинаций (вымышленных фактов)
+                       - Корректной интерпретации данных из документов
+                       - Сохранению нейтрального тона и объективности
+                    
+                    6.Не удаляй факты,которые были найдены при поиске
+                    
+                    7. ЕСЛИ ИЗМЕНЕНИЯ НЕ ТРЕБУЮТСЯ ОТСАВЬ ИСХОДНЫЙ ТЕКСТ(retrieve_answer) БЕЗ ИЗМЕНЕНИЙ
+                    
+                    Пример работы:                    
+                    Вопрос: "Когда была подписана Декларация независимости США?"
+                    Ответ: "Американская декларация была подписана в 1876 году."
+                    Исправленный ответ: "Декларация независимости США была подписана 4 июля 1776 года."
+                    
+                    Теперь проанализируй следующий вопрос и ответ:
+                    
+                    Вопрос: {question}
+                    Ответ: {retrieve_answer}
+                    
+                    ЕСЛИ ИЗМЕНЕНИЯ НЕ ТРЕБУЮТСЯ НАПИШИ ИСХОДНЫЙ ТЕКСТ(retrieve_answer) БЕЗ ИЗМЕНЕНИЙ
+                    Минимум дополнений: Добавляй информацию только тогда, когда это критично для точности или полноты. Если ответ соотвествует вопросу, то НЕ ДОБАВЛЯЙ НИЧЕГО.\n
                     В качестве ответа напиши только итоговый ответ без описания всех предыдищх шагов\n
                     """
 
@@ -335,7 +347,7 @@ class RagAgent:
 
         chain = system_prompt | self.model | StrOutputParser()
         return chain.invoke(
-            {"retrieve_answer": retrieve_answer, "own_known_answer": own_known_answer, "question": question})
+            {"retrieve_answer": retrieve_answer, "question": question})
 
     def _delete_special_symbols(self, answer: str) -> str:
         answer = answer.replace("**", "")
@@ -343,11 +355,10 @@ class RagAgent:
 
     def check_answer_for_correctness(self, state: GraphState):
         retrieve_answer = state["answer_with_retrieve"]
-        # own_known_answer = self.answer_without_context_chain(state["question"])
-        # final_answer = self.check_answer_for_correctness_chain(retrieve_answer, own_known_answer, state["question"])
+        #final_answer = self.check_answer_for_correctness_chain(retrieve_answer, state["question"])
         final_answer = self._delete_special_symbols(retrieve_answer)
         print("------check_answer_for_correctness------", final_answer)
-        return {"answer": final_answer}
+        return {"answer_without_retrieve": False, "answer": final_answer}
 
     def add_source_docs_names(self, state: GraphState):
         documents: list[Document] = state["retrieved_documents"]

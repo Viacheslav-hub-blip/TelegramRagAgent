@@ -76,8 +76,8 @@ class VecStoreService:
         return documents_without_questions
 
     def super_brief_content(self, documents: list[Document]) -> str:
-        documents_without_add_questions = self.get_documents_without_add_questions(documents)
-        context = "\n".join(documents_without_add_questions)
+        documents_content  = [doc.page_content for doc in documents]
+        context = "\n".join(documents_content)
         return self.model_service.get_super_brief_content(context)
 
     def save_docs_and_add_in_retriever(self) -> str:
@@ -89,7 +89,7 @@ class VecStoreService:
         self.retriever.vectorstore.add_documents(summarize_docs_with_ids)
         DocumentsSaver.save_source_docs_ids_names_in_files(user_id, doc_ids, source_docs)
         DocumentsSaver.add_file_id_with_name_in_file(user_id, source_docs[0].metadata["belongs_to"], self.file_name)
-        return self.super_brief_content(summarize_docs_with_ids)
+        return self.super_brief_content(source_docs)
 
     @staticmethod
     def clear_vector_stores(user_id: str):

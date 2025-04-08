@@ -12,8 +12,12 @@ class CustomRetriever:
     def __init__(self, vectorstore: VectorStore):
         self.vectorstore = vectorstore
 
-    def get_relevant_documents(self, query: str) -> list[Document]:
-        result_search_sim_docs = self.vectorstore.similarity_search_with_score(query)
+    def get_relevant_documents(self, query: str, belongs_to: str = None) -> list[Document]:
+        if belongs_to:
+            result_search_sim_docs = self.vectorstore.similarity_search_with_score(query, k=10,
+                                                                                   filter={"belongs_to": belongs_to})
+        else:
+            result_search_sim_docs = self.vectorstore.similarity_search_with_score(query)
         print(result_search_sim_docs)
         collection_name = self.vectorstore._collection_name
         result = []

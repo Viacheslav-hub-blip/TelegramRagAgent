@@ -3,6 +3,7 @@ from typing import NamedTuple, List
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.runnables import RunnablePassthrough
 
 
 class SummarizeContentAndDocs(NamedTuple):
@@ -86,18 +87,27 @@ class LLMModelService:
         answer = self._get_answer(prompt_text, split_docs)
         return answer
 
-    def get_super_brief_content(self, content: str, max_word=200) -> str:
+    def get_super_brief_content(self, content: str, max_word=70) -> str:
         """Вовзращает краткое содержание размер max_word"""
         prompt_text = """
-         Вы помощник, который должен передавать краткое содержание текста. 
-         Передай основные моменты текста, важные моменты, имена, события.
-         Убери все фрагменты, не связанные с содержанием, например, комментарии или описание поправок.
-         Ограничьте вывод {max_word} словами. НЕ используйте слов больше заданного значения.
-         
-         Контекст: {context}
-         
-         В ответе должно быть только краткое содержание. НЕ используйте вводных слов.
+        Проанализируй предоставленный текст и создай его краткое содержание, сохраняя только ключевые идеи и основную суть. Удали всё, что не относится к содержанию: примеры, повторы, метафоры, эмоциональные оценки, второстепенные детали и отступления. Суммаризация должна быть объективной, чёткой и лаконичной.  
+
+        **Требования:**  
+        1. Передай главную мысль текста в 1-2 предложениях.  
+        2. Если текст содержит несколько важных тезисов, перечисли их кратко (не более 3-5 пунктов).  
+        3. Не включай цитаты, диалоги, субъективные мнения автора и примеры.  
+        4. Используй нейтральный стиль, без вводных слов и оценочных суждений.  
+        
+        **Пример правильного выполнения:**  
+        **Исходный текст:** "Многие люди считают, что чтение книг — это не только полезное, но и крайне увлекательное занятие. Например, исследования показывают, что те, кто читает регулярно, обладают более развитым воображением. Лично я уверен, что без книг жизнь была бы скучной..."  
+        **Краткое содержание:** "Чтение книг развивает воображение и приносит пользу."  
+        
+        Теперь проанализируй следующий текст:  
+        {context}  
+        
+        НЕ используй более {max_word} слов
         """
 
-        chain = ChatPromptTemplate.from_template(prompt_text) | self.model | StrOutputParser()
+        chain = ChatPromptTemplate.from_template(prompt_text) | RunnablePassthrough(
+            lambda x: print('prompt', x)) | self.model | StrOutputParser()
         return chain.invoke({"max_word": max_word, "context": content})
