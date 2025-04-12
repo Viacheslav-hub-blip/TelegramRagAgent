@@ -30,20 +30,6 @@ class TextSplitterService:
         return text_splitter
 
     @staticmethod
-    def get_split_documents(content: str) -> List[str]:
-        """Разделяет текст на фрагменты, возвращет список фрагментов"""
-        if len(content) <= 1500:
-            return [content]
-        elif 1500 < len(content) <= 6000:
-            text_splitter = TextSplitterService(chunk_size=500, chunk_overlap=100).get_text_splitter()
-            split_docs = text_splitter.split_text(content)
-            return split_docs
-        else:
-            text_splitter = TextSplitterService(chunk_size=700, chunk_overlap=150).get_text_splitter()
-            split_docs = text_splitter.split_text(content)
-            return split_docs
-
-    @staticmethod
     def get_semantic_split_documents(content: str) -> List[str]:
         """Разделяет текст на фрагменты, возвращет список фрагментов"""
         if len(content) <= 1500:

@@ -45,7 +45,8 @@ class RagAgent:
     def simple_chain(self, system_prompt: str, question: str) -> str:
         prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", system_prompt)
+                ("system", system_prompt),
+                ("human", "Вопрос пользователя: {question}")
             ]
         )
 
@@ -58,9 +59,7 @@ class RagAgent:
                 1.Фактическая - если в вопросе спрашивают про какие либо факты, либо если они должны содержаться в ответе\n
                 2.Аналитическая  - если для ответа на вопрос нужно провести цепочку рассуждений \n
                 3.Мнение - если в вопросе спрашивают твое (языковой модели) мнение или просят порассуждать\n
-
-                Отнеси вопрос к одной из категорий и ответь одним словом: Factual, Analytical, Opinion\n
-                Вопрос пользователя: {question}
+                Отнеси вопрос к одной из категорий и ответь одним словом: Factual, Analytical, Opinion\n               
                 """
 
         return self.simple_chain(system_prompt, question)
@@ -73,7 +72,7 @@ class RagAgent:
         В зависимости от категории на следующих этапах убудут сформированы вспомогательные вопросы
         """
         question_category: str = self.analyze_query_for_category_chain(state["question"])
-        print("question_category", question_category)
+        # print("question_category", question_category)
         return {"question": state["question"], "question_category": question_category}
 
     def choose_query_strategy(self, state: GraphState):
@@ -92,7 +91,6 @@ class RagAgent:
                     извлечения информации по этому вопросу\n
                     Ваша задача: Улучшите этот фактологический запрос дополнительными вопросами для лучшего поиска информации. В качестве ответа предоставьте только улучшенный запрос.\n
                     НЕ используй вступительный слова по типу: Улучшенный запрос, новый запрос и т.д
-                    Вопрос пользователя: {question}
                 """
         return self.simple_chain(system_prompt, question)
 
@@ -101,7 +99,7 @@ class RagAgent:
         В этом случае генерируются дполнительные воросы
         """
         question_with_additions: str = self.factual_query_chain(state["question"])
-        print("----factual strategy------", question_with_additions)
+        # print("----factual strategy------", question_with_additions)
         return {"question_with_additions": question_with_additions}
 
     def analytical_query_chain(self, question: str) -> str:
@@ -123,8 +121,6 @@ class RagAgent:
                     Кого можно назвать гением?\n
                     Какое население в этом городе?\n
                     Как часто встречаются гении?\n
-                    
-                    Вопрос пользователя: {question}
                     """
         return self.simple_chain(system_prompt, question)
 
@@ -133,7 +129,7 @@ class RagAgent:
         Для такого вопроса генерируются уточняющие вопросы
         """
         question_with_additions: str = self.analytical_query_chain(state["question"])
-        print("----analytical strategy------", question_with_additions)
+        # print("----analytical strategy------", question_with_additions)
         return {"question_with_additions": question_with_additions}
 
     def opinion_query_chain(self, question: str) -> str:
@@ -149,16 +145,16 @@ class RagAgent:
         Для такого вопроса генерируются уточняющие вопросы
         """
         question_with_additions: str = self.opinion_query_chain(state["question"])
-        print("----opinion strategy------", question_with_additions)
+        # print("----opinion strategy------", question_with_additions)
         return {"question_with_additions": question_with_additions}
 
     def retrieve_documents(self, state: GraphState):
         """Ищет документы и ограничивает выборку документами со сходством <= 1.3(наиболее релевантные)"""
         retrieved_documents: List[Document] = self.retriever.get_relevant_documents(state["question_with_additions"],
                                                                                     state["file_metadata_id"])
-        for d in retrieved_documents:
-            print(d)
-        print("------retrieve_documents------", retrieved_documents)
+        # for d in retrieved_documents:
+        #     print(d)
+        # print("------retrieve_documents------", retrieved_documents)
         return {"retrieved_documents": retrieved_documents}
 
     def get_neighboring_numbers_doc(self, section_numbers_dict: dict) -> dict:
@@ -168,13 +164,13 @@ class RagAgent:
         res_dict = {}
         for sec, numbers in section_numbers_dict.items():
             numbers_int: list[int] = [int(s) for s in numbers.split("/")]
-            print("numbers_int", numbers_int)
+            # print("numbers_int", numbers_int)
             neighboring_numbers: list[int] = numbers_int + [n + 1 for n in numbers_int]
-            print("neighboring_numbers", neighboring_numbers)
+            # print("neighboring_numbers", neighboring_numbers)
             unique_neighboring_numbers = sorted(set(neighboring_numbers))
-            print("unique_neighboring_numbers", unique_neighboring_numbers)
+            # print("unique_neighboring_numbers", unique_neighboring_numbers)
             res_dict[sec] = "/".join([str(i) for i in unique_neighboring_numbers])
-        print("res_dict", res_dict)
+        # print("res_dict", res_dict)
         return res_dict
 
     def get_neighboring_docs(self, state: GraphState):
@@ -186,35 +182,33 @@ class RagAgent:
             else:
                 section_numbers_dict[doc.metadata["belongs_to"]] = str(doc.metadata["doc_number"])
         neighboring_docs_numbers: dict = self.get_neighboring_numbers_doc(section_numbers_dict)
-        print("neighboring_docs_numbers", neighboring_docs_numbers)
+        # print("neighboring_docs_numbers", neighboring_docs_numbers)
         neighboring_docs: list[Document] = []
         for sec, numbers in neighboring_docs_numbers.items():
             doc_nums = numbers.split("/")
             for num in doc_nums:
                 document = DocumentsGetterService.get_document_by_user_id_section_and_number(state["user_id"], sec, num)
                 neighboring_docs.append(document)
-        print("count docs", len(neighboring_docs))
-        print("------get_neighboring_docs------", neighboring_docs)
+        # print("count docs", len(neighboring_docs))
+        # print("------get_neighboring_docs------", neighboring_docs)
         return {"neighboring_docs": neighboring_docs}
 
     def checking_possibility_responses_chain(self, question: str, context: str):
         """Просим модель проверить, можно ли дать ответ на вопрос по найденным документам"""
         prompt = """
-        Ты - умный помощник, который должен определить, можно ли ответить на вопрос пользователя по найденному контексту.
-        Проанализируй весь полученный контекст, выясни, есть ли в контексте ключевые слова из вопроса, подходит ли контекст к вопросу по семантике и смыслу.
-        Всеми силами попробуй дать ответ на вопрос пользователя по найденному контексту.
-        Если по найденному контексту можно дать ответ на вопрос пользователя или контекст содержит ключевые слова которые есть в вопросе или похож по семантике, напиши "ДА". 
-        Если по найденному конкесту нельзя дать ответ на вопрос пользователя, то ответь "НЕТ".Отвечать "НЕТ" необходимо только в том случае, когда контекст полностью не соотвествует вопросу.
-        Не используй другие слова в ответе.
-        
-        Вопрос пользователя:{question}
-        
+        Ты - умный помощник, который должен определить, можно ли ответить на вопрос пользователя по найденному контексту.\n
+        Проанализируй весь полученный контекст, выясни, есть ли в контексте ключевые слова из вопроса, подходит ли контекст к вопросу по семантике и смыслу.\n
+        Всеми силами попробуй дать ответ на вопрос пользователя по найденному контексту.\n
+        Если по найденному контексту можно дать ответ на вопрос пользователя или контекст содержит ключевые слова которые есть в вопросе или похож по семантике, напиши "ДА".\n
+        Если по найденному конкесту нельзя дать ответ на вопрос пользователя, то ответь "НЕТ".Отвечать "НЕТ" необходимо только в том случае, когда контекст полностью не соотвествует вопросу.\n
+        Не используй другие слова в ответе.\n        
         Найденный контекст: {context}
         """
 
         system_prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", prompt)
+                ("system", prompt),
+                ("human", "Вопрос: {question}")
             ]
         )
 
@@ -225,7 +219,7 @@ class RagAgent:
         """Получает результат оценки возможности ответа на вопрос по контексту"""
         doc_context = "".join([doc.page_content for doc in state["neighboring_docs"]])
         binary_check = self.checking_possibility_responses_chain(state["question"], doc_context)
-        print("------checking_possibility_responses------", binary_check)
+        # print("------checking_possibility_responses------", binary_check)
         if binary_check.lower() in ["yes", "да"]:
             return "да"
         else:
@@ -235,30 +229,25 @@ class RagAgent:
         prompt = """
         Ты — интеллектуальный ассистент, который анализирует предоставленный контекст и формулирует точный, информативный ответ на вопрос пользователя.\n
         Инстуркции:\n
-        Внимательно прочитай контекст и вопрос.\n
-        
+        Внимательно прочитай контекст и вопрос.\n        
         Ответ должен быть:\n
-        -Ракрытым, грамотным и содержащим полную информацию\n
+        -Максимально подробным, грамотным и содержащим полную информацию\n
         -Каждый ответ должен быть точным, правдимым и отвечать на вопрос пользователя\n
-        -Основанным только на контексте (не добавляй внешних знаний).\n
-        
+        -Основанным только на контексте (не добавляй внешних знаний).\n        
+        -Отвечай простым языком(если в вопросе не скзаано другое) и используй вставки из найденного контекста в виде цитат.\n
         Для этого тебе стоит:\n
         -Рассуждать шаг за шагом\n
         -Продумывать свои ответы и действия\n
         -Проверять правильность построения предложений\n
-        -Использовать разные части речи\n
-        
-        
-        Вопрос: {question}\n
-        
-        Найденный контекст: {context}\n
-        
-        Важно: проверь правильность всех фактов, которые пишешь. Проверь имена действующих лиц и соотвествие твоего ответа реальности.
+        -Использовать разные части речи\n        
+        Найденный контекст: {context}\n        
+        Важно: проверь правильность всех фактов, которые пишешь. Проверь имена действующих лиц и соотвествие твоего ответа реальности.\n
         Не описывай все предыщие шаги о размышлениях в ответе. Дай только ответ
         """
         system_prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", prompt)
+                ("system", prompt),
+                ("human", "Вопрос: {question}")
             ]
         )
         chain = system_prompt | RunnablePassthrough(
@@ -268,22 +257,22 @@ class RagAgent:
     def generate_answer_with_retrieve_context(self, state: GraphState):
         doc_context = "".join([doc.page_content for doc in state["neighboring_docs"]])
         answer = self.answer_with_context_chain(state["question"], doc_context)
-        print("------generate_answer_with_retrieve_context------", answer)
+        # print("------generate_answer_with_retrieve_context------", answer)
         return {"answer_with_retrieve": answer}
 
     def answer_without_context_chain(self, question: str):
         prompt = """
-                Ты — интеллектуальный ассистент, который анализирует вопрос и формулирует точный, информативный ответ на вопрос пользователя.        
-                Инстуркции:
-                Ответ должен быть:
-                -Кратким и по делу (если не указано иное).
-                -Структурированным (используй списки, абзацы, выделение ключевых моментов при необходимости).
-
-                Вопрос: {question}
+                Ты — интеллектуальный ассистент, который анализирует вопрос и формулирует точный, информативный ответ на вопрос пользователя.\n
+                Инстуркции:\n
+                Ответ должен быть:\n
+                -Кратким и по делу (если не указано иное).\n
+                -Структурированным (используй списки, абзацы, выделение ключевых моментов при необходимости).\n
+                -Отвечай простым языком, используй вставки и цитаты
                 """
         system_prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", prompt)
+                ("system", prompt),
+                ("human", "Вопрос: {question}")
             ]
         )
         chain = system_prompt | self.model | StrOutputParser()
@@ -291,71 +280,87 @@ class RagAgent:
 
     def answer_without_context(self, state: GraphState):
         answer = self.answer_without_context_chain(state["question"])
-        print("------answer_without_context------", answer)
+        answer = self._delete_special_symbols(answer)
+        # print("------answer_without_context------", answer)
         return {"answer_without_retrieve": True, "answer": answer}
 
-    def check_answer_for_correctness_chain(self, retrieve_answer: str, question: str):
+    def check_answer_for_correctness_chain(self, state: GraphState):
+        retrieve_answer = state["answer_with_retrieve"]
+        question = state["question"]
         prompt = """
-                   Ты - эксперт-редактор, проверяющий ответы, сгенерированные на основе найденных документов. Твоя задача - тщательно анализировать предоставленный ответ в контексте исходного вопроса пользователя и имеющихся данных, затем либо подтверждать его корректность, либо вносить необходимые исправления.
-
-                    Алгоритм работы:
-                    1. Внимательно проанализируй вопрос пользователя и предоставленный ответ
-                    2. Проверь ответ по следующим критериям:
-                       - Соответствие вопросу
-                       - Фактическая точность (все утверждения должны быть подтверждены документами)
-                       - Логическая целостность (отсутствие противоречий в ответе)
-                       - Полнота (ответ должен охватывать ключевые аспекты вопроса)
-                       - Ясность изложения (информация должна быть понятной и структурированной)
+                   Ты - эксперт-редактор, проверяющий ответы, сгенерированные на основе найденных документов. Твоя задача - \n
+                   тщательно анализировать предоставленный ответ в контексте исходного вопроса пользователя и имеющихся данных, затем либо подтверждать его корректность\n
+                    Алгоритм работы:\n
+                    1. Внимательно проанализируй вопрос пользователя и предоставленный ответ\n
+                    2. Проверь ответ по следующим критериям:\n
+                       - Соответствие вопросу\n
+                       - Фактическая точность (все утверждения должны быть подтверждены документами)\n
+                       - Логическая целостность (отсутствие противоречий в ответе)\n
+                       - Полнота (ответ должен охватывать ключевые аспекты вопроса)\n
+                       - Ясность изложения (информация должна быть понятной и структурированной)\n              
+                    3. Если ответ полностью удовлетворяет всем критериям:\n
+                       - напиши 'БЕЗ ИЗМЕНЕНИЙ', иначе напиши 'НУЖНЫ ИЗМЕНЕНИЯ'\n
+                    4. Особое внимание удели:\n
+                        -Названиям,именам,действующим лицам и персонажам\n
+                       - Недопущению галлюцинаций (вымышленных фактов)\n
+                       - Корректной интерпретации данных из документов\n
+                       - Сохранению нейтрального тона и объективности\n
+                    5. ЕСЛИ ИЗМЕНЕНИЯ НЕ ТРЕБУЮТСЯ, 'БЕЗ ИЗМЕНЕНИЙ', иначе напиши 'НУЖНЫ ИЗМЕНЕНИЯ'\n
                     
-                    3. Если ответ полностью удовлетворяет всем критериям:
-                       - Верни исходный текст без изменений
+                    Пример работы:\n
+                    Вопрос: "Когда была подписана Декларация независимости США?"\n
+                    Ответ: "Американская декларация была подписана в 1876 году."\n
+                    Твой ответ: НУЖНЫ ИЗМЕНЕНИЯ\n                    
+                    Теперь проанализируй следующий вопрос и ответ:\n
                     
-                    4. Если найдены ошибки или неточности:
-                       - Предоставь исправленную версию ответа
-                       - Сохрани исходный смысл, но сделай текст более точным и соответствующим вопросу
-                    
-                    5. Особое внимание удели:
-                        -Названиям,именам,действующим лицам и персонажам
-                       - Недопущению галлюцинаций (вымышленных фактов)
-                       - Корректной интерпретации данных из документов
-                       - Сохранению нейтрального тона и объективности
-                    
-                    6.Не удаляй факты,которые были найдены при поиске
-                    
-                    7. ЕСЛИ ИЗМЕНЕНИЯ НЕ ТРЕБУЮТСЯ ОТСАВЬ ИСХОДНЫЙ ТЕКСТ(retrieve_answer) БЕЗ ИЗМЕНЕНИЙ
-                    
-                    Пример работы:                    
-                    Вопрос: "Когда была подписана Декларация независимости США?"
-                    Ответ: "Американская декларация была подписана в 1876 году."
-                    Исправленный ответ: "Декларация независимости США была подписана 4 июля 1776 года."
-                    
-                    Теперь проанализируй следующий вопрос и ответ:
-                    
-                    Вопрос: {question}
-                    Ответ: {retrieve_answer}
-                    
-                    ЕСЛИ ИЗМЕНЕНИЯ НЕ ТРЕБУЮТСЯ НАПИШИ ИСХОДНЫЙ ТЕКСТ(retrieve_answer) БЕЗ ИЗМЕНЕНИЙ
-                    Минимум дополнений: Добавляй информацию только тогда, когда это критично для точности или полноты. Если ответ соотвествует вопросу, то НЕ ДОБАВЛЯЙ НИЧЕГО.\n
-                    В качестве ответа напиши только итоговый ответ без описания всех предыдищх шагов\n
+                    Ответ: {retrieve_answer}\n              
+                          
+                    ЕСЛИ ИЗМЕНЕНИЯ НЕ ТРЕБУЮТСЯ НАПИШИ 'БЕЗ ИЗМЕНЕНИЙ'\n
+                    НЕ используй никаких слов кроме 'БЕЗ ИЗМЕНЕНИЙ' и 'НУЖНЫ ИЗМЕНЕНИЯ'.                
                     """
 
         system_prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", prompt)
+                ("system", prompt),
+                ("human", "Вопрос: {question}")
             ]
         )
 
-        chain = system_prompt | self.model | StrOutputParser()
+        chain = system_prompt | self.model | StrOutputParser() | RunnablePassthrough(
+            lambda x: print("ответ на корректность", x))
         return chain.invoke(
             {"retrieve_answer": retrieve_answer, "question": question})
+
+    def correct_answer_chain(self, question: str, answer: str):
+        prompt = """
+        Ты - эксперт-рекдактор задача которого - исправить ошибки в ответе языковой модели и внести изменения\n
+        Тебе поступает ответ языковой модели в который нужны внести изменения\n
+        Ответ: {answer}\n        
+        И вопрос пользователя. \n
+        Твоя задача: написать исправленный текст\n
+        """
+
+        final_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", prompt),
+                ("human", "Вовпрос пользователя: {question}")
+            ]
+        )
+        chain = final_prompt | self.model | StrOutputParser()
+        return chain.invoke({"question": question, "answer": answer})
+
+    def corrective_answer(self, state: GraphState):
+        answer = state["answer_with_retrieve"]
+        question = state["question"]
+        correct_answer = self.correct_answer_chain(question, answer)
+        return {"answer_with_retrieve": correct_answer}
 
     def _delete_special_symbols(self, answer: str) -> str:
         answer = answer.replace("**", "")
         return answer
 
-    def check_answer_for_correctness(self, state: GraphState):
+    def final_answer(self, state: GraphState):
         retrieve_answer = state["answer_with_retrieve"]
-        #final_answer = self.check_answer_for_correctness_chain(retrieve_answer, state["question"])
         final_answer = self._delete_special_symbols(retrieve_answer)
         print("------check_answer_for_correctness------", final_answer)
         return {"answer_without_retrieve": False, "answer": final_answer}
@@ -376,7 +381,8 @@ class RagAgent:
         workflow.add_node("get_neighboring_docs", self.get_neighboring_docs)
         workflow.add_node("answer_without_context", self.answer_without_context)
         workflow.add_node("generate_answer_with_retrieve_context", self.generate_answer_with_retrieve_context)
-        workflow.add_node("check_answer_for_correctness", self.check_answer_for_correctness)
+        workflow.add_node("final_answer", self.final_answer)
+        workflow.add_node("corrective_answer", self.corrective_answer)
         workflow.add_node("add_source_docs_names", self.add_source_docs_names)
 
         workflow.add_edge(START, "analyze_query_for_category")
@@ -405,8 +411,16 @@ class RagAgent:
             }
         )
 
-        workflow.add_edge("generate_answer_with_retrieve_context", "check_answer_for_correctness")
-        workflow.add_edge("check_answer_for_correctness", "add_source_docs_names")
+        workflow.add_conditional_edges(
+            "generate_answer_with_retrieve_context",
+            self.check_answer_for_correctness_chain,
+            {
+                "БЕЗ ИЗМЕНЕНИЙ": "final_answer",
+                "НУЖНЫ ИЗМЕНЕНИЯ": "corrective_answer"
+            }
+        )
+        workflow.add_edge("corrective_answer", "final_answer")
+        workflow.add_edge("final_answer", "add_source_docs_names")
         workflow.add_edge("add_source_docs_names", END)
 
         workflow.add_edge("answer_without_context", END)

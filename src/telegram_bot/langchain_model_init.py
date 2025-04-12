@@ -8,4 +8,4 @@ os.environ[
 model = GigaChat(verify_ssl_certs=False,
                  credentials=GIGACHAT_API_PERS,
                  temperature=0.8,
-                 model="GigaChat-2")
+                 model="GigaChat-2-Pro")

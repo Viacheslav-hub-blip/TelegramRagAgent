@@ -43,7 +43,7 @@ def _format_answer(answer: AgentAnswer) -> str:
     if answer.answer_without_retrieve:
         res_ans = (
             f"{answer.generation}\n\n"
-            f"Мне не удалось найти ответ на этот вопрос в документах"
+            f"Мне не удалось найти ответ на этот вопрос в документах☹"
         )
         return res_ans
     else:
@@ -96,10 +96,10 @@ async def _start_handler(msg: Message):
         old_users_ids.append(str(msg.from_user.id))
         write_new_ids(old_users_ids)
     await msg.answer(
-        f"Привет!\nЯ чат бот, который поможет тебе работать с документами с помощью GigaChat!"
+        f"Привет!👋\nЯ ассистент, который поможет тебе работать с документами📝"
         "\nДля начала работы просто отправьте файл"
         "\nЕсли у вас нет файла, то просто зайде мне любой вопрос и я на него отвечу\n\n"
-        f"Например: {some_questions_for_examples[random.randint(0, len(some_questions_for_examples))]}",
+        f"Например: {some_questions_for_examples[random.randint(0, len(some_questions_for_examples) - 1)]}",
         reply_markup=faq_kb()
     )
 
@@ -160,7 +160,6 @@ async def _exist_loaded_docs(msg: Message) -> Message:
 @router.message()
 async def any_message_handler(msg: Message, state: FSMContext):
     send_message: Message = await _exist_loaded_docs(msg)
-    print("current state", await state.get_state())
     if await state.get_state() == 'ChooseFileForSearch:file_was_selected':
         file_for_search_id = await _get_file_for_search_id(msg, state)
         answer = _invoke_agent(str(msg.from_user.id), msg.text, file_for_search_id)

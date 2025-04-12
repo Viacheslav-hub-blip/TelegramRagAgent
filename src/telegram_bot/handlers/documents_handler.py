@@ -25,10 +25,9 @@ from src.telegram_bot.langchain_model_init import model
 
 os.environ["TAVILY_API_KEY"] = TAVILY_API_KEY
 os.environ["NUMBA_NUM_THREADS"] = "1"
-
-router = Router()
 DOWNLOAD_PATH = "/src/telegram_bot/temp_downloads"
 
+router = Router()
 tool = TavilySearchResults(k=3)
 llm_model_service = LLMModelService(model)
 
@@ -40,7 +39,8 @@ class LoadFile(StatesGroup):
     process_file = State()
 
 
-def _get_content(input_format, language, file_path):
+def _get_content(input_format, language, file_path) -> str:
+    """Извлекает содержимое из документа"""
     file_reader = FileReader(
         input_format=input_format,
         tessdata_path="/usr/share/tesseract-ocr/5/tessdata/",
@@ -53,8 +53,9 @@ def _get_content(input_format, language, file_path):
     return content
 
 
-def _save_summarize_doc_content(input_format: str, file_path: str, language: List[str], user_id: str,
-                                file_name: str) -> str:
+def _save_doc_content(input_format: str, file_path: str, language: List[str], user_id: str,
+                      file_name: str) -> str:
+    """Сохраняет извлеченную информацию"""
     content = _get_content(input_format, language, file_path)
     retriever = RetrieverSrvice.get_or_create_retriever(user_id)
     vecstore_store_service = VecStoreService(llm_model_service, retriever, content, file_name)
@@ -63,6 +64,7 @@ def _save_summarize_doc_content(input_format: str, file_path: str, language: Lis
 
 
 async def _save_file(file_id) -> str:
+    """Сохраняет загруженный файл"""
     destination = rf"/home/alex/PycharmProjects/pythonProject/src/temp_downloads/{file_id}.pdf"
     await Bot.download(bot, file_id, destination)
     return destination
@@ -76,9 +78,9 @@ async def handle_file(message: Message, state: FSMContext):
         await state.update_data(file_path=res_destination)
         await state.update_data(file_name=message.document.file_name)
         await state.set_state(LoadFile.language)
-        await message.answer(f"Выберите язык фаила. На данный момент я поддерживаю:\neng\nrus")
+        await message.answer(f"🌍Выберите язык фаила. На данный момент я поддерживаю:\neng\nrus")
     else:
-        await message.reply("Извините, пока я работаю только с PDF файлами")
+        await message.reply("Извините, пока я работаю только с PDF файлами📝")
 
 
 @router.message(F.text, LoadFile.language)
@@ -86,7 +88,7 @@ async def choose_file_language(message: Message, state: FSMContext):
     if message.text.lower() in ["eng", "rus"]:
         await state.update_data(language=message.text.lower())
         await message.answer(
-            "Супер! Теперь мне осталось прочитать файл, чтобы ответить на ваши вопросы. Пожалуйста, подождите, это может занять несколько минут\n"
+            "Теперь мне осталось прочитать файл, чтобы ответить на ваши вопросы💡. Пожалуйста, подождите, это может занять несколько минут\n"
             "Когда я закончу обработку, я напишу. Пока я читаю файл, вы можете продолжать задавать мне вопросы.\n\n"
             f"Например: {some_questions_for_examples[random.randint(0, len(some_questions_for_examples) - 1)]}"
         )
@@ -95,7 +97,7 @@ async def choose_file_language(message: Message, state: FSMContext):
         loop = asyncio.get_event_loop()
         data = await state.get_data()
         result = await loop.run_in_executor(None,
-                                            _save_summarize_doc_content,
+                                            _save_doc_content,
                                             'pdf',
                                             data.get("file_path"),
                                             [data.get("language")],
@@ -109,8 +111,7 @@ async def choose_file_language(message: Message, state: FSMContext):
 
 @router.message(Command("clear_documents"))
 async def clear_documents(msg: Message):
-    print(str(msg.from_user.id))
     VecStoreService.clear_vector_stores(str(msg.from_user.id))
     DocumentsSaver.delete_file_with_files_ids_names(str(msg.from_user.id))
     DocumentsSaver.clear_user_directory(str(msg.from_user.id))
-    await msg.answer("Все загруженные документы удалены")
+    await msg.answer("Все загруженные документы удалены🗑")

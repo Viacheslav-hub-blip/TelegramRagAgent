@@ -75,10 +75,19 @@ class VecStoreService:
                                        for summ in documents]
         return documents_without_questions
 
+    def _define_brief_max_word(self, context: str) -> int:
+        len_context = len(context)
+        if len_context <= 800:
+            return 70
+        elif 800 < len_context < 1600:
+            return 100
+        else:
+            return 120
+
     def super_brief_content(self, documents: list[Document]) -> str:
-        documents_content  = [doc.page_content for doc in documents]
+        documents_content = [doc.page_content for doc in documents]
         context = "\n".join(documents_content)
-        return self.model_service.get_super_brief_content(context)
+        return self.model_service.get_super_brief_content(context, self._define_brief_max_word(context))
 
     def save_docs_and_add_in_retriever(self) -> str:
         """Добавлет документы в векторную базу и возвращает
