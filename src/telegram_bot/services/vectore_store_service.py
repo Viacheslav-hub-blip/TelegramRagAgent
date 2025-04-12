@@ -4,7 +4,7 @@ from typing import List, NamedTuple
 from uuid import uuid4
 from langchain.schema.document import Document
 import chromadb
-from src.telegram_bot.services.RetrieverService import CustomRetriever
+from src.telegram_bot.services.retriever_service import CustomRetriever
 from src.telegram_bot.services.llm_model_service import LLMModelService, SummarizeContentAndDocs
 from src.telegram_bot.services.documents_saver_service import DocumentsSaver
 from src.telegram_bot.services.text_splitter_service import TextSplitterService

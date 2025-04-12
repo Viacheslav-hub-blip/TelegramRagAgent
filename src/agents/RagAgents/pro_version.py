@@ -432,7 +432,7 @@ class RagAgent:
 
 
 if __name__ == "__main__":
-    from src.telegram_bot.services.RetrieverService import CustomRetriever, embeddings
+    from src.telegram_bot.services.retriever_service import CustomRetriever, embeddings
     from src.telegram_bot.langchain_model_init import model
     from langchain_chroma import Chroma
     from pprint import pprint

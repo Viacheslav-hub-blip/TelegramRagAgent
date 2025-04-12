@@ -12,7 +12,7 @@ from aiogram.fsm.context import FSMContext
 from src.telegram_bot.keyboards.inline_kbs import ease_link_kb, faq_kb, choose_file_for_search_kb
 from src.telegram_bot.create_bot import bot
 # SERVICES
-from src.telegram_bot.services.RetrieverService import RetrieverSrvice
+from src.telegram_bot.services.retriever_service import RetrieverSrvice
 from src.telegram_bot.services.documents_saver_service import DocumentsSaver
 from src.telegram_bot.services.documents_getter_service import DocumentsGetterService
 # AGENT

@@ -17,9 +17,9 @@ from src.telegram_bot.create_bot import bot
 # SERVICES
 from src.telegram_bot.services.llm_model_service import LLMModelService
 from src.telegram_bot.services.vectore_store_service import VecStoreService
-from src.telegram_bot.services.RetrieverService import RetrieverSrvice
+from src.telegram_bot.services.retriever_service import RetrieverSrvice
 from src.telegram_bot.services.documents_saver_service import DocumentsSaver
-from src.file_reader import FileReader
+from src.telegram_bot.services.pdf_reader_service import PDFReader
 # AGENT
 from src.telegram_bot.langchain_model_init import model_for_brief_content
 
@@ -41,15 +41,8 @@ class LoadFile(StatesGroup):
 
 def _get_content(input_format, language, file_path) -> str:
     """Извлекает содержимое из документа"""
-    file_reader = FileReader(
-        input_format=input_format,
-        tessdata_path="/usr/share/tesseract-ocr/5/tessdata/",
-        file_path=Path(file_path),
-        language=language,
-        generate_picture_images=False
-    )
-    markdown_content = file_reader.get_markdown()
-    content = file_reader.get_cleaned_content(markdown_content)
+    file_reader = PDFReader(file_path)
+    content = file_reader.get_cleaned_content()
     return content
 
 
