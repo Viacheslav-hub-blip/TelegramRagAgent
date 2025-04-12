@@ -21,7 +21,7 @@ from src.telegram_bot.services.RetrieverService import RetrieverSrvice
 from src.telegram_bot.services.documents_saver_service import DocumentsSaver
 from src.file_reader import FileReader
 # AGENT
-from src.telegram_bot.langchain_model_init import model
+from src.telegram_bot.langchain_model_init import model_for_brief_content
 
 os.environ["TAVILY_API_KEY"] = TAVILY_API_KEY
 os.environ["NUMBA_NUM_THREADS"] = "1"
@@ -29,7 +29,7 @@ DOWNLOAD_PATH = "/src/telegram_bot/temp_downloads"
 
 router = Router()
 tool = TavilySearchResults(k=3)
-llm_model_service = LLMModelService(model)
+llm_model_service = LLMModelService(model_for_brief_content)
 
 
 class LoadFile(StatesGroup):

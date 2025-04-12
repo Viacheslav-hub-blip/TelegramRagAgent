@@ -16,7 +16,7 @@ from src.telegram_bot.services.RetrieverService import RetrieverSrvice
 from src.telegram_bot.services.documents_saver_service import DocumentsSaver
 from src.telegram_bot.services.documents_getter_service import DocumentsGetterService
 # AGENT
-from src.telegram_bot.langchain_model_init import model
+from src.telegram_bot.langchain_model_init import model_for_answer
 from src.agents.RagAgents.pro_version import RagAgent
 
 router = Router()
@@ -65,7 +65,7 @@ def _format_answer(answer: AgentAnswer) -> str:
 
 def _invoke_agent(user_id: str, question: str, file_metadata_id: str = None) -> AgentAnswer:
     retriever = RetrieverSrvice.get_or_create_retriever(user_id)
-    rag_agent = RagAgent(model=model, retriever=retriever)
+    rag_agent = RagAgent(model=model_for_answer, retriever=retriever)
     result = rag_agent().invoke({"question": question, "user_id": user_id, "file_metadata_id": file_metadata_id})
     question, generation, = result["question"], result["answer"]
 
