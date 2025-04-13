@@ -33,8 +33,9 @@ class VecStoreService:
         Если документ всег один(его длина была слшком маленькой для разделения,он остается без изменений)
         Иначе получаем SummarizeContentAndDocs с сжатыми документами и исходными
         """
+        print("source split len", len(split_docs))
         if len(split_docs) == 1:
-            return SummarizeContentAndDocs([self.model_service.get_summarize_docs(split_docs)], split_docs)
+            return SummarizeContentAndDocs(split_docs, split_docs)
         return self.model_service.get_summarize_docs_with_questions(split_docs)
 
     def _add_metadata_in_summary_docs(self, doc_ids, docs_section, summarized_docs: list[Document]) -> list[Document]:
@@ -50,6 +51,7 @@ class VecStoreService:
     def _add_metadata_in_source_docs(self, doc_ids, docs_section, source_docs: list[str]) -> list[Document]:
         """Добавлет metadata в исходные документы: уникальный id документа, принадлежность к группе и позицию документа
         в группе. Сделано для дальнейшей возможности извлечения соседних документов"""
+        print("metadata_in_source_docs", len(doc_ids), len(source_docs))
         source_docs_with_metadata = [
             Document(page_content=source, metadata={"doc_id": doc_ids[i], "belongs_to": docs_section, "doc_number": i})
             for i, source in enumerate(source_docs)
@@ -69,10 +71,11 @@ class VecStoreService:
         source_docs_with_metadata = self._add_metadata_in_source_docs(doc_ids, docs_section, source_split_documents)
         return SummDocsWithSourceAndIds(summarized_docs_with_metadata, doc_ids, source_docs_with_metadata)
 
-    def get_documents_without_add_questions(self, documents: list[Document]) -> list[str]:
+    def get_documents_without_add_questions(self, documents: list[Document]) -> list[Document]:
         """Удаляет из сжатых текстов дополнительные вопросы, которые были добавлены перед векторизацией"""
-        documents_without_questions = [re.sub(r'Вопросы:.*?(?=\n\n|\Z)', '', summ.page_content, flags=re.DOTALL)
-                                       for summ in documents]
+        documents_without_questions = [
+            Document(re.sub(r'Вопросы:.*?(?=\n\n|\Z)', '', summ.page_content, flags=re.DOTALL))
+            for summ in documents]
         return documents_without_questions
 
     def _define_brief_max_word(self, context: str) -> int:
@@ -87,6 +90,8 @@ class VecStoreService:
     def super_brief_content(self, documents: list[Document]) -> str:
         documents_content = [doc.page_content for doc in documents]
         context = "\n".join(documents_content)
+        if len(context) <= 500:
+            return context
         return self.model_service.get_super_brief_content(context, self._define_brief_max_word(context))
 
     def save_docs_and_add_in_retriever(self) -> str:
@@ -98,7 +103,7 @@ class VecStoreService:
         self.retriever.vectorstore.add_documents(summarize_docs_with_ids)
         DocumentsSaver.save_source_docs_ids_names_in_files(user_id, doc_ids, source_docs)
         DocumentsSaver.add_file_id_with_name_in_file(user_id, source_docs[0].metadata["belongs_to"], self.file_name)
-        return self.super_brief_content(source_docs)
+        return self.super_brief_content(self.get_documents_without_add_questions(summarize_docs_with_ids))
 
     @staticmethod
     def clear_vector_stores(user_id: str):

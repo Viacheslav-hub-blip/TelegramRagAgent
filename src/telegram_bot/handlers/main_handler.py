@@ -74,7 +74,7 @@ def _invoke_agent(user_id: str, question: str, file_metadata_id: str = None) -> 
         used_docs_names = []
     else:
         used_docs_names = result["used_docs"]
-    print('file metadata id', file_metadata_id)
+    print('use file to search', file_metadata_id)
     return AgentAnswer(question, generation, used_docs_names, answer_without_retrieve, file_metadata_id)
 
 
@@ -98,6 +98,7 @@ async def _start_handler(msg: Message):
     await msg.answer(
         f"Привет!👋\nЯ ассистент, который поможет тебе работать с документами📝"
         "\nДля начала работы просто отправьте файл"
+        "\nНа данный момент я работаю с PDF и WORD файлами обьемом до 30000 символов"
         "\nЕсли у вас нет файла, то просто зайде мне любой вопрос и я на него отвечу\n\n"
         f"Например: {some_questions_for_examples[random.randint(0, len(some_questions_for_examples) - 1)]}",
         reply_markup=faq_kb()

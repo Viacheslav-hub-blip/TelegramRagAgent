@@ -9,6 +9,8 @@ from handlers.documents_handler import router as docs_router
 
 
 async def main():
+    print(
+        len(" но бурал вечерка но такие времена что уже молодежь не работает увольняются поэтому вот работают уже зайду даже вместо зарплаты"))
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_routers(docs_router, main_router)
     await bot.delete_webhook(drop_pending_updates=True)

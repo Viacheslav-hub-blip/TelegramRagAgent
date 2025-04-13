@@ -8,9 +8,9 @@ os.environ[
 model_for_answer = GigaChat(verify_ssl_certs=False,
                             credentials=GIGACHAT_API_PERS,
                             temperature=0.8,
-                            model="GigaChat-2-Max")
+                            model="GigaChat-2")
 
 model_for_brief_content = GigaChat(verify_ssl_certs=False,
                                    credentials=GIGACHAT_API_PERS,
                                    temperature=0.8,
-                                   model="GigaChat-2-Pro")
+                                   model="GigaChat-2")

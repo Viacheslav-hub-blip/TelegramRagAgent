@@ -31,12 +31,14 @@ class LLMModelService:
             while retries < max_retries:
                 try:
                     text_sum = (summarize_chain
-                                .with_retry(wait_exponential_jitter=True, stop_after_attempt=3)
+                                .with_retry(wait_exponential_jitter=True, stop_after_attempt=6)
                                 .invoke(batch))
                     result_text_sum.append(text_sum)
+                    print("TEXT SUM: {}".format(text_sum))
                     retries = 0
                     break
                 except Exception as e:
+                    print("Exception: {}".format(e))
                     retries += 1
                     delay = exponential_backoff(retries)
                     time.sleep(delay)

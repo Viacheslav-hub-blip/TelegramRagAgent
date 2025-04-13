@@ -18,7 +18,7 @@ class CustomRetriever:
                                                                                    filter={"belongs_to": belongs_to})
         else:
             result_search_sim_docs = self.vectorstore.similarity_search_with_score(query)
-        print(result_search_sim_docs)
+        # print(result_search_sim_docs)
         collection_name = self.vectorstore._collection_name
         result = []
         for result_search_sim_doc, score in result_search_sim_docs:
@@ -29,9 +29,9 @@ class CustomRetriever:
             source_doc = DocumentsGetterService.get_source_document(collection_name, doc_id, belongs_to, doc_number)
             result_search_sim_doc.metadata["source_doc"] = source_doc.page_content
             result.append(result_search_sim_doc)
-        for r in result:
-            print(r.metadata["score"], r.metadata["source_doc"])
-        print("result search result", result)
+        # for r in result:
+        #     print(r.metadata["score"], r.metadata["source_doc"])
+        # print("result search result", result)
         return result
 
 

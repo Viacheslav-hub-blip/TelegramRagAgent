@@ -150,6 +150,7 @@ class RagAgent:
 
     def retrieve_documents(self, state: GraphState):
         """Ищет документы и ограничивает выборку документами со сходством <= 1.3(наиболее релевантные)"""
+        print(state["question_with_additions"])
         retrieved_documents: List[Document] = self.retriever.get_relevant_documents(state["question_with_additions"],
                                                                                     state["file_metadata_id"])
         # for d in retrieved_documents:
@@ -170,7 +171,7 @@ class RagAgent:
             unique_neighboring_numbers = sorted(set(neighboring_numbers))
             # print("unique_neighboring_numbers", unique_neighboring_numbers)
             res_dict[sec] = "/".join([str(i) for i in unique_neighboring_numbers])
-        # print("res_dict", res_dict)
+        print("res_dict", res_dict)
         return res_dict
 
     def get_neighboring_docs(self, state: GraphState):
@@ -199,7 +200,7 @@ class RagAgent:
         Ты - умный помощник, который должен определить, можно ли ответить на вопрос пользователя по найденному контексту.\n
         Проанализируй весь полученный контекст, выясни, есть ли в контексте ключевые слова из вопроса, подходит ли контекст к вопросу по семантике и смыслу.\n
         Всеми силами попробуй дать ответ на вопрос пользователя по найденному контексту.\n
-        Если по найденному контексту можно дать ответ на вопрос пользователя или контекст содержит ключевые слова которые есть в вопросе или похож по семантике, напиши "ДА".\n
+        Если по найденному контексту можно дать ответ на вопрос пользователя или контекст содержит ключевые слова которые есть в вопросе или контекст похож по семантике на вопрос, напиши "ДА".\n
         Если по найденному конкесту нельзя дать ответ на вопрос пользователя, то ответь "НЕТ".Отвечать "НЕТ" необходимо только в том случае, когда контекст полностью не соотвествует вопросу.\n
         Не используй другие слова в ответе.\n        
         Найденный контекст: {context}
@@ -218,12 +219,15 @@ class RagAgent:
     def checking_possibility_responses(self, state: GraphState):
         """Получает результат оценки возможности ответа на вопрос по контексту"""
         doc_context = "".join([doc.page_content for doc in state["neighboring_docs"]])
-        binary_check = self.checking_possibility_responses_chain(state["question"], doc_context)
-        # print("------checking_possibility_responses------", binary_check)
-        if binary_check.lower() in ["yes", "да"]:
-            return "да"
-        else:
-            return "нет"
+        if len(doc_context) != 0:
+            binary_check = self.checking_possibility_responses_chain(state["question"], doc_context)
+            print("------checking_possibility_responses------", binary_check)
+            if binary_check.lower() in ["yes", "да"]:
+                return "да"
+            else:
+                return "нет"
+        print("нет контекста")
+        return "нет"
 
     def answer_with_context_chain(self, question: str, context: str):
         prompt = """
