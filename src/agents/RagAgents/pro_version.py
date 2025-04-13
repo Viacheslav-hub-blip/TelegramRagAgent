@@ -153,9 +153,9 @@ class RagAgent:
         print(state["question_with_additions"])
         retrieved_documents: List[Document] = self.retriever.get_relevant_documents(state["question_with_additions"],
                                                                                     state["file_metadata_id"])
-        # for d in retrieved_documents:
-        #     print(d)
-        # print("------retrieve_documents------", retrieved_documents)
+        for d in retrieved_documents:
+            print(d)
+
         return {"retrieved_documents": retrieved_documents}
 
     def get_neighboring_numbers_doc(self, section_numbers_dict: dict) -> dict:
@@ -166,7 +166,7 @@ class RagAgent:
         for sec, numbers in section_numbers_dict.items():
             numbers_int: list[int] = [int(s) for s in numbers.split("/")]
             # print("numbers_int", numbers_int)
-            neighboring_numbers: list[int] = numbers_int + [n + 1 for n in numbers_int]
+            neighboring_numbers: list[int] = numbers_int + [n - 1 for n in numbers_int] + [n + 1 for n in numbers_int]
             # print("neighboring_numbers", neighboring_numbers)
             unique_neighboring_numbers = sorted(set(neighboring_numbers))
             # print("unique_neighboring_numbers", unique_neighboring_numbers)
@@ -189,10 +189,42 @@ class RagAgent:
             doc_nums = numbers.split("/")
             for num in doc_nums:
                 document = DocumentsGetterService.get_document_by_user_id_section_and_number(state["user_id"], sec, num)
-                neighboring_docs.append(document)
+                if len(document.page_content) > 0:
+                    document.metadata["belongs_to"] = sec
+                    neighboring_docs.append(document)
         # print("count docs", len(neighboring_docs))
         # print("------get_neighboring_docs------", neighboring_docs)
         return {"neighboring_docs": neighboring_docs}
+
+    def rerank_document_chain(self, question: str, document: Document) -> str:
+        system_prompt = """
+        Ты - реранкер в RAG системе. У тебя есть запрос пользователя и найденный документ:
+        {document}
+        
+        Оцени, насколько этот документ релевантен запросу по шкале от 1 до 5 (5  - полностью релевантен).
+        Верни только цифру. НЕ используй ничего другого, кроме цифр от 1 до 5.
+        """
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", system_prompt),
+            ("human", "Вопрос пользователя: {question}")
+        ])
+
+        chain = prompt | self.model | StrOutputParser()
+        return chain.invoke({"question": question, "document": document})
+
+    def reranked_documents(self, state: GraphState):
+        retrieved_neighboring_docs = state["neighboring_docs"]
+        question = state["question"]
+        docs_with_rank_over = []
+        for doc in retrieved_neighboring_docs:
+            rank = self.rerank_document_chain(question, doc)
+            print("rank: ", rank)
+            if int(rank) >= 3:
+                docs_with_rank_over.append(doc)
+        for d in docs_with_rank_over:
+            print("-----------")
+            print(d.metadata)
+        return {"neighboring_docs": docs_with_rank_over}
 
     def checking_possibility_responses_chain(self, question: str, context: str):
         """Просим модель проверить, можно ли дать ответ на вопрос по найденным документам"""
@@ -219,6 +251,7 @@ class RagAgent:
     def checking_possibility_responses(self, state: GraphState):
         """Получает результат оценки возможности ответа на вопрос по контексту"""
         doc_context = "".join([doc.page_content for doc in state["neighboring_docs"]])
+        print("doc content", doc_context)
         if len(doc_context) != 0:
             binary_check = self.checking_possibility_responses_chain(state["question"], doc_context)
             print("------checking_possibility_responses------", binary_check)
@@ -370,7 +403,9 @@ class RagAgent:
         return {"answer_without_retrieve": False, "answer": final_answer}
 
     def add_source_docs_names(self, state: GraphState):
-        documents: list[Document] = state["retrieved_documents"]
+        documents: list[Document] = state["neighboring_docs"]
+        print("------------------------------")
+        print(documents)
         file_ids_names = DocumentsGetterService.get_files_ids_names(state["user_id"])
         used_docs_names = list(set([file_ids_names.get(doc.metadata["belongs_to"]) for doc in documents]))
         return {"used_docs": used_docs_names}
@@ -383,6 +418,7 @@ class RagAgent:
         workflow.add_node("opinion_query_strategy", self.opinion_query_strategy)
         workflow.add_node("retrieve_documents", self.retrieve_documents)
         workflow.add_node("get_neighboring_docs", self.get_neighboring_docs)
+        workflow.add_node("reranked_documents", self.reranked_documents)
         workflow.add_node("answer_without_context", self.answer_without_context)
         workflow.add_node("generate_answer_with_retrieve_context", self.generate_answer_with_retrieve_context)
         workflow.add_node("final_answer", self.final_answer)
@@ -405,9 +441,10 @@ class RagAgent:
         workflow.add_edge("opinion_query_strategy", "retrieve_documents")
 
         workflow.add_edge("retrieve_documents", "get_neighboring_docs")
+        workflow.add_edge("get_neighboring_docs", "reranked_documents")
 
         workflow.add_conditional_edges(
-            "get_neighboring_docs",
+            "reranked_documents",
             self.checking_possibility_responses,
             {
                 "да": "generate_answer_with_retrieve_context",
