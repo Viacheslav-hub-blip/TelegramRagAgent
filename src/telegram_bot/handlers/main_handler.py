@@ -1,5 +1,4 @@
 import random
-from pprint import pprint
 from typing import List, NamedTuple
 from src.telegram_bot.config import some_questions_for_examples
 # AIOGRAM
@@ -9,7 +8,8 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 # TELEGRAMBOT
-from src.telegram_bot.keyboards.inline_kbs import ease_link_kb, faq_kb, choose_file_for_search_kb
+from src.telegram_bot.keyboards.inline_kbs import ease_link_kb, faq_kb, choose_file_or_context_kb, \
+    stop_working_with_context_kb
 from src.telegram_bot.create_bot import bot
 # SERVICES
 from src.telegram_bot.services.retriever_service import RetrieverSrvice
@@ -31,11 +31,14 @@ class AgentAnswer(NamedTuple):
     file_metadata_id: str
 
 
-class ChooseFileForSearch(StatesGroup):
+class ChooseFileOrUseContext(StatesGroup):
     possible_files_names = State()
     select_file_names = State()
     file_was_selected = State()
     selected_name = State()
+
+    last_message_text = State()
+    use_context = State()
 
 
 def _format_answer(answer: AgentAnswer) -> str:
@@ -110,6 +113,19 @@ async def faq_handler(callback: CallbackQuery):
     await callback.message.answer("Вот ифнормация о нас", reply_markup=ease_link_kb())
 
 
+@router.callback_query(F.data == "use_context")
+async def use_context_handler(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(use_context=True)
+    await callback.message.answer("Вы начали работу с контекстом,чтобы завершить нажмите:",
+                                  reply_markup=stop_working_with_context_kb())
+
+
+@router.callback_query(F.data == "stop_working_with_context")
+async def stop_working_with_context_handler(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(use_context=False)
+    await callback.message.answer(f"Вы прекратили работу с контекстом, теперь я могу искать ифнормацию в документах")
+
+
 @router.callback_query(F.data == "choose_file_for_search")
 async def choose_file_for_search(callback: CallbackQuery, state: FSMContext):
     all_files_ids_names = DocumentsGetterService.get_files_ids_names(str(callback.from_user.id))
@@ -118,16 +134,16 @@ async def choose_file_for_search(callback: CallbackQuery, state: FSMContext):
                                   f"{names}\n\n"
                                   f"✨или напишите 'искать во всех'")
     await state.update_data(possible_files_names=names)
-    await state.set_state(ChooseFileForSearch.select_file_names)
+    await state.set_state(ChooseFileOrUseContext.select_file_names)
 
 
-@router.message(F.text, ChooseFileForSearch.select_file_names)
+@router.message(F.text, ChooseFileOrUseContext.select_file_names)
 async def select_file_name_for_search(msg: Message, state: FSMContext):
     possible_names = await state.get_data()
     possible_names = possible_names.get("possible_files_names")
     msg_text = msg.text.lower().strip()
     if msg_text in possible_names:
-        await state.set_state(ChooseFileForSearch.file_was_selected)
+        await state.set_state(ChooseFileOrUseContext.file_was_selected)
         await state.update_data(selected_name=msg.text)
         await msg.answer(f"Выбран файл для поиска: {msg.text}")
     elif msg_text == 'искать во всех':
@@ -158,15 +174,27 @@ async def _exist_loaded_docs(msg: Message) -> Message:
     return send_message
 
 
-@router.message()
-async def any_message_handler(msg: Message, state: FSMContext):
+async def answer_without_context(msg: Message, state: FSMContext):
     send_message: Message = await _exist_loaded_docs(msg)
-    if await state.get_state() == 'ChooseFileForSearch:file_was_selected':
+
+    if await state.get_state() == 'ChooseFileOrUseContext:file_was_selected':
         file_for_search_id = await _get_file_for_search_id(msg, state)
         answer = _invoke_agent(str(msg.from_user.id), msg.text, file_for_search_id)
     else:
         answer = _invoke_agent(str(msg.from_user.id), msg.text)
 
     format_ans = _format_answer(answer)
+    await state.update_data(last_message=format_ans)
     await bot.delete_message(chat_id=msg.chat.id, message_id=send_message.message_id)
-    await msg.answer(format_ans, reply_markup=choose_file_for_search_kb())
+    await msg.answer(format_ans, reply_markup=choose_file_or_context_kb())
+
+
+async def answer_with_context(msg: Message, state: FSMContext):
+    pass
+
+
+@router.message()
+async def any_message_handler(msg: Message, state: FSMContext):
+    if state.get_state() == 'ChooseFileOrUseContext:use_context':
+        return await answer_with_context(msg, state)
+    return await answer_without_context(msg, state)
