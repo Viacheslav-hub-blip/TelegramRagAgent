@@ -18,6 +18,8 @@ from src.telegram_bot.services.documents_getter_service import DocumentsGetterSe
 # AGENT
 from src.telegram_bot.langchain_model_init import model_for_answer
 from src.agents.RagAgents.pro_version import RagAgent
+from src.agents.RagAgents.agent_with_messages import AgentWithHistory
+from langchain_core.messages import HumanMessage, AIMessage, AnyMessage
 
 router = Router()
 DOWNLOAD_PATH = "/src/telegram_bot/temp_downloads"
@@ -37,12 +39,12 @@ class ChooseFileOrUseContext(StatesGroup):
     file_was_selected = State()
     selected_name = State()
 
-    last_message_text = State()
     use_context = State()
+    context_messages = State()
 
 
 def _format_answer(answer: AgentAnswer) -> str:
-    names = "\n".join(answer.source_docs_names)
+    names = "\n✅".join(answer.source_docs_names)
     if answer.answer_without_retrieve:
         res_ans = (
             f"{answer.generation}\n\n"
@@ -53,7 +55,7 @@ def _format_answer(answer: AgentAnswer) -> str:
         if answer.file_metadata_id:
             res_ans = (
                 f"{answer.generation}\n\n"
-                f"Поиск был в установленном документе:\n"
+                f"📃Поиск был в установленном документе:\n"
                 f"{names}"
             )
             return res_ans
@@ -116,14 +118,15 @@ async def faq_handler(callback: CallbackQuery):
 @router.callback_query(F.data == "use_context")
 async def use_context_handler(callback: CallbackQuery, state: FSMContext):
     await state.update_data(use_context=True)
-    await callback.message.answer("Вы начали работу с контекстом,чтобы завершить нажмите:",
+    await callback.message.answer("✅Вы начали работу с ответом, в этом режиме я не ищу информацию в документах. Чтобы завершить нажмите:",
                                   reply_markup=stop_working_with_context_kb())
 
 
 @router.callback_query(F.data == "stop_working_with_context")
 async def stop_working_with_context_handler(callback: CallbackQuery, state: FSMContext):
     await state.update_data(use_context=False)
-    await callback.message.answer(f"Вы прекратили работу с контекстом, теперь я могу искать ифнормацию в документах")
+    await state.update_data(context_messages=[])
+    await callback.message.answer(f"❌Вы прекратили работу с ответом, теперь я могу искать ифнормацию в документах🗃")
 
 
 @router.callback_query(F.data == "choose_file_for_search")
@@ -184,17 +187,33 @@ async def answer_without_context(msg: Message, state: FSMContext):
         answer = _invoke_agent(str(msg.from_user.id), msg.text)
 
     format_ans = _format_answer(answer)
-    await state.update_data(last_message=format_ans)
+    print("добавление сообщения")
+    await state.update_data(context_messages=[AIMessage(format_ans)])
     await bot.delete_message(chat_id=msg.chat.id, message_id=send_message.message_id)
     await msg.answer(format_ans, reply_markup=choose_file_or_context_kb())
 
 
 async def answer_with_context(msg: Message, state: FSMContext):
-    pass
+    data = await state.get_data()
+    messages: list[AnyMessage] = data.get("context_messages")
+    print("mes", messages)
+    if messages is None:
+        messages = []
+    print(messages)
+    messages = messages + [(HumanMessage(content=msg.text))]
+    agent = AgentWithHistory(model_for_answer)
+    answer: str = agent().invoke({"messages": messages})["final_answer"]
+    messages = messages + [AIMessage(content=answer)]
+    await state.update_data(context_messages=messages)
+    print(answer)
+    await msg.answer(answer[:9500], reply_markup=stop_working_with_context_kb())
 
 
 @router.message()
 async def any_message_handler(msg: Message, state: FSMContext):
-    if state.get_state() == 'ChooseFileOrUseContext:use_context':
+    data = await state.get_data()
+    use_context = data.get("use_context")
+    print("STATE", use_context)
+    if use_context:
         return await answer_with_context(msg, state)
     return await answer_without_context(msg, state)

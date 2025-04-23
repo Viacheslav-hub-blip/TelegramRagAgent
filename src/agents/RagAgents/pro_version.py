@@ -474,7 +474,7 @@ class RagAgent:
 
 if __name__ == "__main__":
     from src.telegram_bot.services.retriever_service import CustomRetriever, embeddings
-    from src.telegram_bot.langchain_model_init import model
+    from src.telegram_bot.langchain_model_init import model_for_answer
     from langchain_chroma import Chroma
     from pprint import pprint
 
@@ -517,7 +517,7 @@ if __name__ == "__main__":
     ]
     retriever.vectorstore.add_documents(docs)
 
-    agent = RagAgent(model, retriever)
+    agent = RagAgent(model_for_answer, retriever)
 
     while True:
         input_question = input("Введите сообщение: ")

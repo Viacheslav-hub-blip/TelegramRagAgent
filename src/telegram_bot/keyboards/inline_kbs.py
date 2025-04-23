@@ -13,15 +13,15 @@ def ease_link_kb():
 
 def choose_file_or_context_kb():
     inline_kb_list = [
-        [InlineKeyboardButton(text="Выбрать файл", callback_data="choose_file_for_search")],
-        [InlineKeyboardButton(text="Продолжить работу в контексте", callback_data="use_context")],
+        [InlineKeyboardButton(text="Выбрать файл🗃", callback_data="choose_file_for_search")],
+        [InlineKeyboardButton(text="Продолжить работу с ответом📗", callback_data="use_context")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=inline_kb_list)
 
 
 def stop_working_with_context_kb():
     inline_kb_list = [
-        [InlineKeyboardButton(text="Прекратить работу", callback_data="stop_working_with_context")],
+        [InlineKeyboardButton(text="Прекратить работать с ответом🗑", callback_data="stop_working_with_context")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=inline_kb_list)
 
