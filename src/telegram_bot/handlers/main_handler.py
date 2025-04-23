@@ -187,7 +187,6 @@ async def answer_without_context(msg: Message, state: FSMContext):
         answer = _invoke_agent(str(msg.from_user.id), msg.text)
 
     format_ans = _format_answer(answer)
-    print("добавление сообщения")
     await state.update_data(context_messages=[AIMessage(format_ans)])
     await bot.delete_message(chat_id=msg.chat.id, message_id=send_message.message_id)
     await msg.answer(format_ans, reply_markup=choose_file_or_context_kb())
@@ -196,16 +195,13 @@ async def answer_without_context(msg: Message, state: FSMContext):
 async def answer_with_context(msg: Message, state: FSMContext):
     data = await state.get_data()
     messages: list[AnyMessage] = data.get("context_messages")
-    print("mes", messages)
     if messages is None:
         messages = []
-    print(messages)
     messages = messages + [(HumanMessage(content=msg.text))]
     agent = AgentWithHistory(model_for_answer)
     answer: str = agent().invoke({"messages": messages})["final_answer"]
     messages = messages + [AIMessage(content=answer)]
     await state.update_data(context_messages=messages)
-    print(answer)
     await msg.answer(answer[:9500], reply_markup=stop_working_with_context_kb())
 
 
@@ -213,7 +209,6 @@ async def answer_with_context(msg: Message, state: FSMContext):
 async def any_message_handler(msg: Message, state: FSMContext):
     data = await state.get_data()
     use_context = data.get("use_context")
-    print("STATE", use_context)
     if use_context:
         return await answer_with_context(msg, state)
     return await answer_without_context(msg, state)

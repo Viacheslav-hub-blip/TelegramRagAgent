@@ -2,10 +2,9 @@ from langgraph.graph import END, START, StateGraph
 from typing import TypedDict, Annotated
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AnyMessage
-from langgraph.graph import MessagesState, add_messages
+from langgraph.graph import add_messages
 from langchain_core.messages import SystemMessage, HumanMessage, RemoveMessage, AIMessage
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
+
 
 
 class GraphState(TypedDict):
@@ -56,11 +55,8 @@ class AgentWithHistory:
     def should_continue(self, state: GraphState):
         messages = state["messages"]
 
-        # If there are more than six messages, then we summarize the conversation
         if len(messages) > 6:
             return "summarize_conversation"
-
-        # Otherwise we can just end
         return "conversation"
 
     def format_answer(self, state: GraphState):
